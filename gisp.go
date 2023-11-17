@@ -9,6 +9,10 @@ import (
 	"text/scanner"
 )
 
+var (
+	ErrInvalid = fmt.Errorf("invalid-token")
+)
+
 type Object interface {
 	String() string
 	Value() any
@@ -123,41 +127,25 @@ func (p *Parser) SepNext() bool {
 }
 
 func (p *Parser) Parse() (l []any, err error) {
-	var v any
 	var neg bool
 	var quoted bool
 
 	maybequoted := func(v any) any {
 		if quoted {
-			fmt.Println("Quote", v)
 			quoted = false
-			return Quoted{value: v}
+
+			switch v.(type) {
+			case Symbol, List:
+				fmt.Println("Quote", v)
+				v = Quoted{value: v}
+			}
 		}
 
 		return v
 	}
 
-	addv := func() {
-		if v != nil {
-			fmt.Printf("ADD %v %v\n", l, v)
-			l = append(l, maybequoted(v))
-			v = nil
-		}
-	}
-
-	addident := func(s string) bool {
-		if v == nil {
-			return false
-		}
-
-		if i, ok := v.(Symbol); ok {
-			i.value += s
-			v = i
-			return true
-		}
-
-		addv()
-		return false
+	appendtolist := func(v any) {
+		l = append(l, maybequoted(v))
 	}
 
 	for tok := p.s.Scan(); tok != scanner.EOF; tok = p.s.Scan() {
@@ -167,31 +155,28 @@ func (p *Parser) Parse() (l []any, err error) {
 
 		switch tok {
 		case '(':
-			addv()
-
 			vv, err := p.Parse()
 			if err != nil {
 				return nil, err
 			}
 
-			l = append(l, maybequoted(List{items: vv}))
+			appendtolist(List{items: vv})
 
 		case ')':
-			if quoted && v == nil {
-				v = Nil{}
+			if quoted {
+				appendtolist(Nil{})
 			}
 
-			addv()
 			break
 
 		case ' ', '\t', '\n', '\r':
-			addv()
+			continue
 
 		case scanner.Ident:
+			var id string
+
 			for {
-				if !addident(st) {
-					v = ident(st)
-				}
+				id += st
 
 				if p.SepNext() {
 					break
@@ -201,51 +186,47 @@ func (p *Parser) Parse() (l []any, err error) {
 				st = p.s.TokenText()
 			}
 
+			appendtolist(ident(id))
+
 		case scanner.String:
-			v = String{value: st}
+			appendtolist(String{value: st})
 
 		case scanner.Int:
-			if !addident(st) {
-				i, _ := strconv.ParseInt(st, 10, 64)
-				if neg {
-					i = -i
-					neg = false
-				}
-				v = Integer{value: i}
+			i, _ := strconv.ParseInt(st, 10, 64)
+			if neg {
+				i = -i
+				neg = false
 			}
+			appendtolist(Integer{value: i})
 
 		case scanner.Float:
-			if !addident(st) {
-				f, _ := strconv.ParseFloat(st, 64)
-				if neg {
-					f = -f
-					neg = false
-				}
-				v = Float{value: f}
+			f, _ := strconv.ParseFloat(st, 64)
+			if neg {
+				f = -f
+				neg = false
 			}
+			appendtolist(Float{value: f})
 
 		case '\'':
 			fmt.Println("quote")
 			quoted = true
 
 		case '+', '-', '/', '*':
-			if !addident(st) {
-				if tok == '+' || tok == '-' {
-					if n := p.s.Peek(); n == '.' || (n >= '0' && n <= '9') { // next token is a number
-						neg = tok == '-'
-						continue
-					}
+			if tok == '+' || tok == '-' {
+				if n := p.s.Peek(); n == '.' || (n >= '0' && n <= '9') { // next token is a number
+					neg = tok == '-'
+					continue
 				}
-
-				v = Op{value: st}
 			}
+
+			appendtolist(Op{value: st})
 
 		default:
 			fmt.Printf("UNKNOWN %v %q", scanner.TokenString(tok), st)
+			return nil, ErrInvalid
 		}
 	}
 
-	addv()
 	return
 }
 
