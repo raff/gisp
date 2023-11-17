@@ -12,6 +12,14 @@ import (
 var (
 	ErrInvalid = fmt.Errorf("invalid-token")
 	Verbose    = false
+
+	True = Boolean{value: true}
+	Nil  = Boolean{value: false}
+
+	boolstring = map[bool]string{
+		true:  "t",
+		false: "nil",
+	}
 )
 
 type Object interface {
@@ -19,15 +27,12 @@ type Object interface {
 	Value() any
 }
 
-type Nil struct{}
+type Boolean struct {
+	value bool
+}
 
-func (o Nil) String() string { return `nil` }
-func (o Nil) Value() any     { return nil }
-
-type True struct{}
-
-func (o True) String() string { return `true` }
-func (o True) Value() any     { return true }
+func (o Boolean) String() string { return boolstring[o.value] }
+func (o Boolean) Value() any     { return o.value }
 
 type Symbol struct {
 	value string
@@ -95,10 +100,10 @@ func (o List) Item(i int) any {
 func ident(v string) Object {
 	switch v {
 	case "t":
-		return True{}
+		return True
 
 	case "nil":
-		return Nil{}
+		return Nil
 	}
 
 	return Symbol{value: v}
@@ -106,7 +111,6 @@ func ident(v string) Object {
 
 type Parser struct {
 	s scanner.Scanner
-	//curr any
 }
 
 func NewParser(r io.Reader) *Parser {
@@ -169,7 +173,7 @@ func (p *Parser) Parse() (l []any, err error) {
 
 		case ')':
 			if quoted {
-				appendtolist(Nil{})
+				appendtolist(Nil)
 			}
 
 			return
@@ -237,6 +241,31 @@ func (p *Parser) Parse() (l []any, err error) {
 	}
 
 	return
+}
+
+func Eval(v any) any {
+	switch t := v.(type) {
+	case String:
+		return t
+
+	case Integer:
+		return t
+
+	case Float:
+		return t
+
+	case Boolean:
+		return t
+
+	case Quoted:
+		return t.value
+
+	case Symbol:
+
+	case List:
+	}
+
+	return nil
 }
 
 func main() {
