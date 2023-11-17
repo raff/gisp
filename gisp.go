@@ -11,6 +11,7 @@ import (
 
 var (
 	ErrInvalid = fmt.Errorf("invalid-token")
+	Verbose    = false
 )
 
 type Object interface {
@@ -136,7 +137,9 @@ func (p *Parser) Parse() (l []any, err error) {
 
 			switch v.(type) {
 			case Symbol, List:
-				fmt.Println("Quote", v)
+				if Verbose {
+					fmt.Println("Quote", v)
+				}
 				v = Quoted{value: v}
 			}
 		}
@@ -151,7 +154,9 @@ func (p *Parser) Parse() (l []any, err error) {
 	for tok := p.s.Scan(); tok != scanner.EOF; tok = p.s.Scan() {
 		st := p.s.TokenText()
 
-		fmt.Printf("%v: %v %q\n", p.s.Position, scanner.TokenString(tok), st)
+		if Verbose {
+			fmt.Printf("%v: %v %q\n", p.s.Position, scanner.TokenString(tok), st)
+		}
 
 		switch tok {
 		case '(':
@@ -167,7 +172,7 @@ func (p *Parser) Parse() (l []any, err error) {
 				appendtolist(Nil{})
 			}
 
-			break
+			return
 
 		case ' ', '\t', '\n', '\r':
 			continue
@@ -208,7 +213,9 @@ func (p *Parser) Parse() (l []any, err error) {
 			appendtolist(Float{value: f})
 
 		case '\'':
-			fmt.Println("quote")
+			if Verbose {
+				fmt.Println("quote")
+			}
 			quoted = true
 
 		case '+', '-', '/', '*':
@@ -222,7 +229,9 @@ func (p *Parser) Parse() (l []any, err error) {
 			appendtolist(Op{value: st})
 
 		default:
-			fmt.Printf("UNKNOWN %v %q", scanner.TokenString(tok), st)
+			if Verbose {
+				fmt.Printf("UNKNOWN %v %q", scanner.TokenString(tok), st)
+			}
 			return nil, ErrInvalid
 		}
 	}
@@ -251,9 +260,7 @@ func main() {
 
 	fmt.Println()
 
-	if len(l) != 1 {
-		fmt.Println(l)
-	} else {
-		fmt.Println(l[0])
+	for _, v := range l {
+		fmt.Println(v)
 	}
 }
