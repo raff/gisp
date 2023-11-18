@@ -10,8 +10,10 @@ import (
 )
 
 var (
-	ErrInvalid = fmt.Errorf("invalid-token")
-	Verbose    = false
+	ErrInvalid     = fmt.Errorf("invalid-token")
+	ErrInvalidType = fmt.Errorf("invalid-argument-type")
+	ErrMissing     = fmt.Errorf("missing-argument")
+	Verbose        = false
 
 	True = Boolean{value: true}
 	Nil  = Boolean{value: false}
@@ -264,6 +266,77 @@ func (p *Parser) Parse() (l []any, err error) {
 	return
 }
 
+type Call func(args []any) any
+
+var functions = map[string]Call{
+	"print": func(args []any) any {
+		n, _ := fmt.Print(args...)
+		return n
+	},
+	"println": func(args []any) any {
+		n, _ := fmt.Println(args...)
+		return n
+	},
+}
+
+func callop(op Op, args []any) any {
+	if len(args) == 0 {
+		if op.value == "+" {
+			return 0
+		}
+
+		return ErrMissing
+	}
+
+	if i, ok := args[0].(Integer); ok {
+		v := i.value
+
+		for _, a := range args[1:] {
+			ii, ok := a.(CanInt)
+			if !ok {
+				return ErrInvalidType
+			}
+
+			switch op.value {
+			case "+":
+				v += ii.Int()
+			case "-":
+				v -= ii.Int()
+			case "*":
+				v *= ii.Int()
+			case "/":
+				v /= ii.Int()
+			}
+		}
+
+		return Integer{value: v}
+	} else if f, ok := args[0].(Float); ok {
+		v := f.value
+
+		for _, a := range args[1:] {
+			ii, ok := a.(CanFloat)
+			if !ok {
+				return ErrInvalidType
+			}
+
+			switch op.value {
+			case "+":
+				v += ii.Float()
+			case "-":
+				v -= ii.Float()
+			case "*":
+				v *= ii.Float()
+			case "/":
+				v /= ii.Float()
+			}
+		}
+
+		return Float{value: v}
+	}
+
+	return ErrInvalidType
+}
+
 func Eval(v any) any {
 	switch t := v.(type) {
 	case String:
@@ -282,8 +355,20 @@ func Eval(v any) any {
 		return t.value
 
 	case Symbol:
+		return t
 
 	case List:
+		if len(t.items) == 0 {
+			return Nil
+		}
+		switch i := t.items[0].(type) {
+		case Symbol:
+			if f, ok := functions[i.value]; ok {
+				return f(t.items[1:])
+			}
+		case Op:
+			return callop(i, t.items[1:])
+		}
 	}
 
 	return nil
@@ -311,6 +396,6 @@ func main() {
 	fmt.Println()
 
 	for _, v := range l {
-		fmt.Println(v)
+		fmt.Println(Eval(v))
 	}
 }
