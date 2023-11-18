@@ -27,12 +27,25 @@ type Object interface {
 	Value() any
 }
 
+type CanInt interface {
+	Int() int64
+}
+
+type CanFloat interface {
+	Float() float64
+}
+
+type CanBool interface {
+	Bool() bool
+}
+
 type Boolean struct {
 	value bool
 }
 
 func (o Boolean) String() string { return boolstring[o.value] }
 func (o Boolean) Value() any     { return o.value }
+func (o Boolean) Bool() bool     { return o.value }
 
 type Symbol struct {
 	value string
@@ -61,6 +74,8 @@ type Integer struct {
 
 func (o Integer) String() string { return fmt.Sprint(o.value) }
 func (o Integer) Value() any     { return o.value }
+func (o Integer) Int() int64     { return o.value }
+func (o Integer) Float() float64 { return float64(o.value) }
 
 type Float struct {
 	value float64
@@ -68,6 +83,8 @@ type Float struct {
 
 func (o Float) String() string { return fmt.Sprint(o.value) }
 func (o Float) Value() any     { return o.value }
+func (o Float) Int() int64     { return int64(o.value) }
+func (o Float) Float() float64 { return o.value }
 
 type String struct {
 	value string
@@ -95,6 +112,10 @@ func (o List) Item(i int) any {
 	}
 
 	return o.items[i]
+}
+
+func (o List) Bool() bool {
+	return len(o.items) > 0
 }
 
 func ident(v string) Object {
