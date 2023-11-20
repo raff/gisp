@@ -132,6 +132,18 @@ func ident(v string) Object {
 	return Symbol{value: v}
 }
 
+func quote(v any) any {
+	switch v.(type) {
+	case Symbol, List:
+		if Verbose {
+			fmt.Println("Quote", v)
+		}
+		return Quoted{value: v}
+	}
+
+	return v
+}
+
 type Parser struct {
 	s scanner.Scanner
 }
@@ -161,14 +173,7 @@ func (p *Parser) Parse() (l []any, err error) {
 	maybequoted := func(v any) any {
 		if quoted {
 			quoted = false
-
-			switch v.(type) {
-			case Symbol, List:
-				if Verbose {
-					fmt.Println("Quote", v)
-				}
-				v = Quoted{value: v}
-			}
+			v = quote(v)
 		}
 
 		return v
@@ -276,6 +281,13 @@ var functions = map[string]Call{
 	"println": func(args []any) any {
 		n, _ := fmt.Println(args...)
 		return n
+	},
+	"quote": func(args []any) any {
+		if len(args) == 0 {
+			return Nil
+		}
+
+		return quote(args[0])
 	},
 }
 
