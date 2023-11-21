@@ -613,11 +613,18 @@ func init() {
 
 			for {
 				bval, ok := env.Get(cond).(CanBool)
-				if !(ok && bval.Bool()) {
+				if Verbose {
+					fmt.Println(cond, bval)
+				}
+
+				if !ok || !bval.Bool() {
 					break
 				}
 
 				for _, v := range args {
+					if Verbose {
+						fmt.Println("  ", v)
+					}
 					ret = Eval(env, v)
 				}
 			}
@@ -708,7 +715,7 @@ func callcond(op Cond, env *Env, args []any) any {
 		return True
 	}
 
-	for _, a := range args {
+	for _, a := range args[1:] {
 		var cond bool
 		c2 := env.Get(a)
 
@@ -773,6 +780,7 @@ func (e *Env) Get(o any) any {
 	}
 
 	return Eval(e, o)
+	//return o
 }
 
 func (e *Env) GetList(l []any) (el []any) {
