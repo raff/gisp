@@ -138,7 +138,7 @@ func (o Integer) String() string { return fmt.Sprint(o.value) }
 func (o Integer) Value() any     { return o.value }
 func (o Integer) Int() int64     { return o.value }
 func (o Integer) Float() float64 { return float64(o.value) }
-func (o Integer) Bool() Boolean  { return True }
+func (o Integer) Bool() bool     { return true }
 
 func (o Integer) Eq(v any) bool {
 	if i, ok := v.(CanInt); ok {
@@ -188,7 +188,7 @@ func (o Float) String() string { return fmt.Sprint(o.value) }
 func (o Float) Value() any     { return o.value }
 func (o Float) Int() int64     { return int64(o.value) }
 func (o Float) Float() float64 { return o.value }
-func (o Float) Bool() Boolean  { return True }
+func (o Float) Bool() bool     { return true }
 
 func (o Float) Eq(v any) bool {
 	if f, ok := v.(CanFloat); ok {
@@ -236,7 +236,7 @@ type String struct {
 
 func (o String) String() string { return o.value }
 func (o String) Value() any     { return o.value }
-func (o String) Bool() Boolean  { return True }
+func (o String) Bool() bool     { return true }
 
 func (o String) Eq(v any) bool {
 	if s, ok := v.(String); ok {
@@ -540,7 +540,41 @@ var functions = map[string]Call{
 	// if cond then [cond then...] else
 	//
 	"if": func(env *Env, args []any) any {
-		return Nil
+		if len(args) == 0 {
+			return Nil
+		}
+
+		var barg any
+
+		for {
+			barg, args = env.Get(args[0]), args[1:]
+			bval, ok := barg.(CanBool)
+			if !ok {
+				return barg
+			}
+
+			// if
+			if bval.Bool() {
+				if len(args) == 0 {
+					return barg
+				}
+
+				return env.Get(args[0])
+			}
+
+			// else
+			switch len(args) {
+			case 0:
+				return Nil
+
+			case 1:
+				return env.Get(args[0])
+			}
+
+			// else if
+			//   shift and continue
+			args = args[1:]
+		}
 	},
 }
 
