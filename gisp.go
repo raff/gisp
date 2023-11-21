@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"text/scanner"
+	"time"
 )
 
 var (
@@ -27,7 +28,11 @@ var (
 		false: 0,
 		true:  1,
 	}
+
+	functions map[string]Call
 )
+
+type Call func(env *Env, args []any) any
 
 type Object interface {
 	String() string
@@ -473,109 +478,154 @@ func (p *Parser) Parse() (l []any, err error) {
 	return
 }
 
-type Call func(env *Env, args []any) any
+func init() {
+	// primitive functions
 
-var functions = map[string]Call{
-	//
-	// print args
-	//
-	"print": func(env *Env, args []any) any {
-		n, _ := fmt.Print(env.GetList(args)...)
-		return n
-	},
+	functions = map[string]Call{
+		//
+		// print args
+		//
+		"print": func(env *Env, args []any) any {
+			n, _ := fmt.Print(env.GetList(args)...)
+			return n
+		},
 
-	//
-	// println args...
-	//
-	"println": func(env *Env, args []any) any {
-		n, _ := fmt.Println(env.GetList(args)...)
-		return n
-	},
+		//
+		// println args...
+		//
+		"println": func(env *Env, args []any) any {
+			n, _ := fmt.Println(env.GetList(args)...)
+			return n
+		},
 
-	//
-	// quote symbol
-	//
-	"quote": func(env *Env, args []any) any {
-		if len(args) == 0 {
-			return Nil
-		}
-
-		return quote(args[0])
-	},
-
-	//
-	// setq name value
-	//
-	"setq": func(env *Env, args []any) (ret any) {
-		l := len(args)
-		if l == 0 || l%2 != 0 {
-			return ErrMissing
-		}
-
-		for i := 0; i < l; i += 2 {
-			name, value := args[i+0], env.Get(args[i+1])
-			ret = env.Put(name, value)
-		}
-
-		return
-	},
-
-	//
-	// not bool
-	//
-	"not": func(env *Env, args []any) any {
-		if len(args) == 0 {
-			return True
-		}
-
-		v := env.Get(args[0])
-		if b, ok := v.(CanBool); ok {
-			return Boolean{value: !b.Bool()}
-		}
-
-		return Nil
-	},
-
-	//
-	// if cond then [cond then...] else
-	//
-	"if": func(env *Env, args []any) any {
-		if len(args) == 0 {
-			return Nil
-		}
-
-		var barg any
-
-		for {
-			barg, args = env.Get(args[0]), args[1:]
-			bval, ok := barg.(CanBool)
-			if !ok {
-				return barg
+		//
+		// sleep ms
+		//
+		"sleep": func(env *Env, args []any) any {
+			if len(args) == 0 {
+				return ErrMissing
 			}
 
-			// if
-			if bval.Bool() {
-				if len(args) == 0 {
+			v := env.Get(args[0])
+
+			if tm, ok := v.(CanInt); ok {
+				time.Sleep(time.Millisecond * time.Duration(tm.Int()))
+				return tm
+			}
+
+			return ErrInvalidType
+		},
+
+		//
+		// quote symbol
+		//
+		"quote": func(env *Env, args []any) any {
+			if len(args) == 0 {
+				return Nil
+			}
+
+			return quote(args[0])
+		},
+
+		//
+		// setq name value
+		//
+		"setq": func(env *Env, args []any) (ret any) {
+			l := len(args)
+			if l == 0 || l%2 != 0 {
+				return ErrMissing
+			}
+
+			for i := 0; i < l; i += 2 {
+				name, value := args[i+0], env.Get(args[i+1])
+				ret = env.Put(name, value)
+			}
+
+			return
+		},
+
+		//
+		// not bool
+		//
+		"not": func(env *Env, args []any) any {
+			if len(args) == 0 {
+				return True
+			}
+
+			v := env.Get(args[0])
+			if b, ok := v.(CanBool); ok {
+				return Boolean{value: !b.Bool()}
+			}
+
+			return Nil
+		},
+
+		//
+		// if cond then [cond then...] else
+		//
+		"if": func(env *Env, args []any) any {
+			if len(args) == 0 {
+				return Nil
+			}
+
+			var barg any
+
+			for {
+				barg, args = env.Get(args[0]), args[1:]
+				bval, ok := barg.(CanBool)
+				if !ok {
 					return barg
 				}
 
-				return env.Get(args[0])
-			}
+				// if
+				if bval.Bool() {
+					if len(args) == 0 {
+						return barg
+					}
 
-			// else
-			switch len(args) {
-			case 0:
+					return env.Get(args[0])
+				}
+
+				// else
+				switch len(args) {
+				case 0:
+					return Nil
+
+				case 1:
+					return env.Get(args[0])
+				}
+
+				// else if
+				//   shift and continue
+				args = args[1:]
+			}
+		},
+
+		//
+		// while cond block
+		//
+		"while": func(env *Env, args []any) (ret any) {
+			if len(args) == 0 {
 				return Nil
-
-			case 1:
-				return env.Get(args[0])
 			}
 
-			// else if
-			//   shift and continue
-			args = args[1:]
-		}
-	},
+			cond, args := args[0], args[1:]
+
+			for {
+				bval, ok := env.Get(cond).(CanBool)
+				if !(ok && bval.Bool()) {
+					break
+				}
+
+				for _, v := range args {
+					ret = Eval(env, v)
+				}
+			}
+
+			return ret
+
+		},
+	}
 }
 
 func callop(op Op, env *Env, args []any) any {
@@ -722,7 +772,7 @@ func (e *Env) Get(o any) any {
 		return Nil
 	}
 
-	return o
+	return Eval(e, o)
 }
 
 func (e *Env) GetList(l []any) (el []any) {
@@ -733,7 +783,7 @@ func (e *Env) GetList(l []any) (el []any) {
 	return
 }
 
-func Eval(v any, env *Env) any {
+func Eval(env *Env, v any) any {
 	switch t := v.(type) {
 	case String:
 		return t
@@ -799,6 +849,6 @@ func main() {
 	env := NewEnv()
 
 	for _, v := range l {
-		fmt.Println(Eval(v, env))
+		fmt.Println(Eval(env, v))
 	}
 }
