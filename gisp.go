@@ -78,6 +78,7 @@ func (o Integer) String() string { return fmt.Sprint(o.value) }
 func (o Integer) Value() any     { return o.value }
 func (o Integer) Int() int64     { return o.value }
 func (o Integer) Float() float64 { return float64(o.value) }
+func (o Integer) Bool() Boolean  { return True }
 
 type Float struct {
 	value float64
@@ -87,6 +88,7 @@ func (o Float) String() string { return fmt.Sprint(o.value) }
 func (o Float) Value() any     { return o.value }
 func (o Float) Int() int64     { return int64(o.value) }
 func (o Float) Float() float64 { return o.value }
+func (o Float) Bool() Boolean  { return True }
 
 type String struct {
 	value string
@@ -94,6 +96,7 @@ type String struct {
 
 func (o String) String() string { return o.value }
 func (o String) Value() any     { return o.value }
+func (o String) Bool() Boolean  { return True }
 
 type List struct {
 	items []any
@@ -289,13 +292,30 @@ var functions = map[string]Call{
 
 		return quote(args[0])
 	},
-	"setq": func(env *Env, args []any) any {
-		if len(args) != 2 {
+	"setq": func(env *Env, args []any) (ret any) {
+		l := len(args)
+		if l == 0 || l%2 != 0 {
 			return ErrMissing
 		}
 
-		name, value := args[0], env.Get(args[1])
-		return env.Put(name, value)
+		for i := 0; i < l; i += 2 {
+			name, value := args[i+0], env.Get(args[i+1])
+			ret = env.Put(name, value)
+		}
+
+		return
+	},
+	"not": func(env *Env, args []any) any {
+		if len(args) == 0 {
+			return True
+		}
+
+		v := env.Get(args[0])
+		if b, ok := v.(CanBool); ok {
+			return Boolean{value: !b.Bool()}
+		}
+
+		return Nil
 	},
 }
 
