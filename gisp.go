@@ -250,7 +250,7 @@ func (p *Parser) Parse() (l []any, err error) {
 			}
 			quoted = true
 
-		case '+', '-', '/', '*':
+		case '+', '-', '/', '*', '%':
 			if tok == '+' || tok == '-' {
 				if n := p.s.Peek(); n == '.' || (n >= '0' && n <= '9') { // next token is a number
 					neg = tok == '-'
@@ -330,6 +330,8 @@ func callop(op Op, env *Env, args []any) any {
 				v *= ii.Int()
 			case "/":
 				v /= ii.Int()
+			case "%":
+				v %= ii.Int()
 			}
 		}
 
@@ -354,6 +356,8 @@ func callop(op Op, env *Env, args []any) any {
 				v *= ii.Float()
 			case "/":
 				v /= ii.Float()
+			case "%":
+				v = float64(int64(v) % int64(ii.Float()))
 			}
 		}
 
