@@ -271,27 +271,35 @@ func (p *Parser) Parse() (l []any, err error) {
 	return
 }
 
-type Call func(args []any) any
+type Call func(env *Env, args []any) any
 
 var functions = map[string]Call{
-	"print": func(args []any) any {
-		n, _ := fmt.Print(args...)
+	"print": func(env *Env, args []any) any {
+		n, _ := fmt.Print(env.GetList(args)...)
 		return n
 	},
-	"println": func(args []any) any {
-		n, _ := fmt.Println(args...)
+	"println": func(env *Env, args []any) any {
+		n, _ := fmt.Println(env.GetList(args)...)
 		return n
 	},
-	"quote": func(args []any) any {
+	"quote": func(env *Env, args []any) any {
 		if len(args) == 0 {
 			return Nil
 		}
 
 		return quote(args[0])
 	},
+	"setq": func(env *Env, args []any) any {
+		if len(args) != 2 {
+			return ErrMissing
+		}
+
+		name, value := args[0], env.Get(args[1])
+		return env.Put(name, value)
+	},
 }
 
-func callop(op Op, args []any) any {
+func callop(op Op, env *Env, args []any) any {
 	if len(args) == 0 {
 		if op.value == "+" {
 			return 0
@@ -300,10 +308,14 @@ func callop(op Op, args []any) any {
 		return ErrMissing
 	}
 
-	if i, ok := args[0].(Integer); ok {
+	first := env.Get(args[0])
+
+	if i, ok := first.(Integer); ok {
 		v := i.value
 
 		for _, a := range args[1:] {
+			a = env.Get(a)
+
 			ii, ok := a.(CanInt)
 			if !ok {
 				return ErrInvalidType
@@ -322,10 +334,12 @@ func callop(op Op, args []any) any {
 		}
 
 		return Integer{value: v}
-	} else if f, ok := args[0].(Float); ok {
+	} else if f, ok := first.(Float); ok {
 		v := f.value
 
 		for _, a := range args[1:] {
+			a = env.Get(a)
+
 			ii, ok := a.(CanFloat)
 			if !ok {
 				return ErrInvalidType
@@ -349,7 +363,48 @@ func callop(op Op, args []any) any {
 	return ErrInvalidType
 }
 
-func Eval(v any) any {
+type Env struct {
+	vars map[string]any
+	next *Env
+}
+
+func NewEnv() *Env {
+	return &Env{vars: map[string]any{}}
+}
+
+func (e *Env) Put(o, value any) any {
+	if s, ok := o.(Symbol); ok {
+		e.vars[s.value] = value
+	}
+
+	return value
+}
+
+func (e *Env) Get(o any) any {
+	if s, ok := o.(Symbol); ok {
+		if v, ok := e.vars[s.value]; ok {
+			return v
+		}
+
+		if e.next != nil {
+			return e.next.Get(o)
+		}
+
+		return Nil
+	}
+
+	return o
+}
+
+func (e *Env) GetList(l []any) (el []any) {
+	for _, v := range l {
+		el = append(el, e.Get(v))
+	}
+
+	return
+}
+
+func Eval(v any, env *Env) any {
 	switch t := v.(type) {
 	case String:
 		return t
@@ -367,7 +422,7 @@ func Eval(v any) any {
 		return t.value
 
 	case Symbol:
-		return t
+		return env.Get(t)
 
 	case List:
 		if len(t.items) == 0 {
@@ -376,10 +431,12 @@ func Eval(v any) any {
 		switch i := t.items[0].(type) {
 		case Symbol:
 			if f, ok := functions[i.value]; ok {
-				return f(t.items[1:])
+				return f(env, t.items[1:])
 			}
+			return env.Get(i.value)
+
 		case Op:
-			return callop(i, t.items[1:])
+			return callop(i, env, t.items[1:])
 		}
 	}
 
@@ -407,7 +464,9 @@ func main() {
 
 	fmt.Println()
 
+	env := NewEnv()
+
 	for _, v := range l {
-		fmt.Println(Eval(v))
+		fmt.Println(Eval(v, env))
 	}
 }
