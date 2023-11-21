@@ -476,14 +476,25 @@ func (p *Parser) Parse() (l []any, err error) {
 type Call func(env *Env, args []any) any
 
 var functions = map[string]Call{
+	//
+	// print args
+	//
 	"print": func(env *Env, args []any) any {
 		n, _ := fmt.Print(env.GetList(args)...)
 		return n
 	},
+
+	//
+	// println args...
+	//
 	"println": func(env *Env, args []any) any {
 		n, _ := fmt.Println(env.GetList(args)...)
 		return n
 	},
+
+	//
+	// quote symbol
+	//
 	"quote": func(env *Env, args []any) any {
 		if len(args) == 0 {
 			return Nil
@@ -491,6 +502,10 @@ var functions = map[string]Call{
 
 		return quote(args[0])
 	},
+
+	//
+	// setq name value
+	//
 	"setq": func(env *Env, args []any) (ret any) {
 		l := len(args)
 		if l == 0 || l%2 != 0 {
@@ -504,6 +519,10 @@ var functions = map[string]Call{
 
 		return
 	},
+
+	//
+	// not bool
+	//
 	"not": func(env *Env, args []any) any {
 		if len(args) == 0 {
 			return True
@@ -514,6 +533,13 @@ var functions = map[string]Call{
 			return Boolean{value: !b.Bool()}
 		}
 
+		return Nil
+	},
+
+	//
+	// if cond then [cond then...] else
+	//
+	"if": func(env *Env, args []any) any {
 		return Nil
 	},
 }
