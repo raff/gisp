@@ -13,14 +13,19 @@ var (
 	ErrInvalid     = fmt.Errorf("invalid-token")
 	ErrInvalidType = fmt.Errorf("invalid-argument-type")
 	ErrMissing     = fmt.Errorf("missing-argument")
-	Verbose        = false
+	Verbose, _     = strconv.ParseBool(os.Getenv("VERBOSE"))
 
 	True = Boolean{value: true}
 	Nil  = Boolean{value: false}
 
 	boolstring = map[bool]string{
-		true:  "t",
 		false: "nil",
+		true:  "t",
+	}
+
+	boolint = map[bool]int{
+		false: 0,
+		true:  1,
 	}
 )
 
@@ -41,6 +46,14 @@ type CanBool interface {
 	Bool() bool
 }
 
+type CanCond interface {
+	Eq(v any) bool
+	Lt(v any) bool
+	Leq(v any) bool
+	Gt(v any) bool
+	Geq(v any) bool
+}
+
 type Boolean struct {
 	value bool
 }
@@ -48,6 +61,46 @@ type Boolean struct {
 func (o Boolean) String() string { return boolstring[o.value] }
 func (o Boolean) Value() any     { return o.value }
 func (o Boolean) Bool() bool     { return o.value }
+
+func (o Boolean) Eq(v any) bool {
+	if b, ok := v.(CanBool); ok {
+		return o.value == b.Bool()
+	}
+
+	return !o.value
+}
+
+func (o Boolean) Lt(v any) bool {
+	if b, ok := v.(CanBool); ok {
+		return boolint[o.value] < boolint[b.Bool()]
+	}
+
+	return false
+}
+
+func (o Boolean) Leq(v any) bool {
+	if b, ok := v.(CanBool); ok {
+		return boolint[o.value] <= boolint[b.Bool()]
+	}
+
+	return boolint[o.value] <= boolint[false]
+}
+
+func (o Boolean) Gt(v any) bool {
+	if b, ok := v.(CanBool); ok {
+		return boolint[o.value] > boolint[b.Bool()]
+	}
+
+	return o.value
+}
+
+func (o Boolean) Geq(v any) bool {
+	if b, ok := v.(CanBool); ok {
+		return boolint[o.value] >= boolint[b.Bool()]
+	}
+
+	return true
+}
 
 type Symbol struct {
 	value string
@@ -70,6 +123,13 @@ type Op struct {
 func (o Op) String() string { return fmt.Sprintf("%q", o.value) }
 func (o Op) Value() any     { return o.value }
 
+type Cond struct {
+	value string
+}
+
+func (o Cond) String() string { return fmt.Sprintf("%q", o.value) }
+func (o Cond) Value() any     { return o.value }
+
 type Integer struct {
 	value int64
 }
@@ -79,6 +139,46 @@ func (o Integer) Value() any     { return o.value }
 func (o Integer) Int() int64     { return o.value }
 func (o Integer) Float() float64 { return float64(o.value) }
 func (o Integer) Bool() Boolean  { return True }
+
+func (o Integer) Eq(v any) bool {
+	if i, ok := v.(CanInt); ok {
+		return o.value == i.Int()
+	}
+
+	return false
+}
+
+func (o Integer) Lt(v any) bool {
+	if i, ok := v.(CanInt); ok {
+		return o.value < i.Int()
+	}
+
+	return false
+}
+
+func (o Integer) Leq(v any) bool {
+	if i, ok := v.(CanInt); ok {
+		return o.value <= i.Int()
+	}
+
+	return false
+}
+
+func (o Integer) Gt(v any) bool {
+	if i, ok := v.(CanInt); ok {
+		return o.value > i.Int()
+	}
+
+	return false
+}
+
+func (o Integer) Geq(v any) bool {
+	if i, ok := v.(CanInt); ok {
+		return o.value >= i.Int()
+	}
+
+	return false
+}
 
 type Float struct {
 	value float64
@@ -90,6 +190,46 @@ func (o Float) Int() int64     { return int64(o.value) }
 func (o Float) Float() float64 { return o.value }
 func (o Float) Bool() Boolean  { return True }
 
+func (o Float) Eq(v any) bool {
+	if f, ok := v.(CanFloat); ok {
+		return o.value == f.Float()
+	}
+
+	return false
+}
+
+func (o Float) Lt(v any) bool {
+	if f, ok := v.(CanFloat); ok {
+		return o.value < f.Float()
+	}
+
+	return false
+}
+
+func (o Float) Leq(v any) bool {
+	if f, ok := v.(CanFloat); ok {
+		return o.value <= f.Float()
+	}
+
+	return false
+}
+
+func (o Float) Gt(v any) bool {
+	if f, ok := v.(CanFloat); ok {
+		return o.value > f.Float()
+	}
+
+	return false
+}
+
+func (o Float) Geq(v any) bool {
+	if f, ok := v.(CanFloat); ok {
+		return o.value >= f.Float()
+	}
+
+	return false
+}
+
 type String struct {
 	value string
 }
@@ -97,6 +237,46 @@ type String struct {
 func (o String) String() string { return o.value }
 func (o String) Value() any     { return o.value }
 func (o String) Bool() Boolean  { return True }
+
+func (o String) Eq(v any) bool {
+	if s, ok := v.(String); ok {
+		return o.value == s.value
+	}
+
+	return false
+}
+
+func (o String) Lt(v any) bool {
+	if s, ok := v.(String); ok {
+		return o.value < s.value
+	}
+
+	return false
+}
+
+func (o String) Leq(v any) bool {
+	if s, ok := v.(String); ok {
+		return o.value <= s.value
+	}
+
+	return false
+}
+
+func (o String) Gt(v any) bool {
+	if s, ok := v.(String); ok {
+		return o.value > s.value
+	}
+
+	return false
+}
+
+func (o String) Geq(v any) bool {
+	if s, ok := v.(String); ok {
+		return o.value >= s.value
+	}
+
+	return false
+}
 
 type List struct {
 	items []any
@@ -263,6 +443,25 @@ func (p *Parser) Parse() (l []any, err error) {
 
 			appendtolist(Op{value: st})
 
+		case '<':
+			if p.s.Peek() == '=' {
+				p.s.Next()
+				appendtolist(Cond{value: "<="})
+			} else {
+				appendtolist(Cond{value: "<"})
+			}
+
+		case '>':
+			if p.s.Peek() == '=' {
+				p.s.Next()
+				appendtolist(Cond{value: ">="})
+			} else {
+				appendtolist(Cond{value: ">"})
+			}
+
+		case '=':
+			appendtolist(Cond{value: "="})
+
 		default:
 			if Verbose {
 				fmt.Printf("UNKNOWN %v %q", scanner.TokenString(tok), st)
@@ -330,8 +529,9 @@ func callop(op Op, env *Env, args []any) any {
 
 	first := env.Get(args[0])
 
-	if i, ok := first.(Integer); ok {
-		v := i.value
+	switch t := first.(type) {
+	case Integer:
+		v := t.value
 
 		for _, a := range args[1:] {
 			a = env.Get(a)
@@ -356,8 +556,9 @@ func callop(op Op, env *Env, args []any) any {
 		}
 
 		return Integer{value: v}
-	} else if f, ok := first.(Float); ok {
-		v := f.value
+
+	case Float:
+		v := t.value
 
 		for _, a := range args[1:] {
 			a = env.Get(a)
@@ -385,6 +586,50 @@ func callop(op Op, env *Env, args []any) any {
 	}
 
 	return ErrInvalidType
+}
+
+func callcond(op Cond, env *Env, args []any) any {
+	if len(args) == 0 {
+		return True
+	}
+
+	c1, ok := env.Get(args[0]).(CanCond)
+	if !ok {
+		return True
+	}
+
+	for _, a := range args {
+		var cond bool
+		c2 := env.Get(a)
+
+		switch op.value {
+		case "=":
+			cond = c1.Eq(c2)
+
+		case "<":
+			cond = c1.Lt(c2)
+
+		case "<=":
+			cond = c1.Leq(c2)
+
+		case ">":
+			cond = c1.Gt(c2)
+
+		case ">=":
+			cond = c1.Geq(c2)
+		}
+
+		if !cond {
+			return Nil
+		}
+
+		c1, ok = c2.(CanCond)
+		if !ok {
+			break
+		}
+	}
+
+	return True
 }
 
 type Env struct {
@@ -461,6 +706,9 @@ func Eval(v any, env *Env) any {
 
 		case Op:
 			return callop(i, env, t.items[1:])
+
+		case Cond:
+			return callcond(i, env, t.items[1:])
 		}
 	}
 
