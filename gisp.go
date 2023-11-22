@@ -308,6 +308,14 @@ func (o List) Bool() bool {
 	return len(o.items) > 0
 }
 
+type Lambda struct {
+	args []any
+	body []any
+}
+
+func (o Lambda) String() string { return fmt.Sprintf("(lambda %v %v)", o.args, o.body) }
+func (o Lambda) Value() any     { return Nil }
+
 func ident(v string) Object {
 	switch v {
 	case "t":
@@ -662,8 +670,8 @@ func init() {
 
 			env = NewEnv(env)
 
-			for _, v := range llocals.items {
-				env.PutLocal(v, nil)
+			for _, n := range llocals.items {
+				env.PutLocal(n, nil)
 			}
 
 			for _, v := range args {
@@ -675,7 +683,47 @@ func init() {
 
 			return
 		},
+
+		//
+		// lambda (args) stmt...
+		//
+		"lambda": func(env *Env, args []any) any {
+			if len(args) == 0 {
+				return ErrMissing
+			}
+
+			locals, args := args[0], args[1:]
+			llocals, ok := locals.(List)
+			if !ok {
+				return ErrInvalidType
+			}
+
+			return Lambda{args: llocals.items, body: args}
+		},
 	}
+}
+
+func callambda(l Lambda, env *Env, args []any) (ret any) {
+	lenv := NewEnv(env)
+
+	for i, n := range l.args {
+		var v any = nil
+
+		if i < len(args) {
+			v = lenv.PutLocal(n, env.Get(args[i]))
+		}
+
+		lenv.PutLocal(n, v)
+	}
+
+	for _, v := range l.body {
+		if Verbose {
+			fmt.Println("  ", v)
+		}
+		ret = Eval(lenv, v)
+	}
+
+	return
 }
 
 func callop(op Op, env *Env, args []any) any {
@@ -874,7 +922,12 @@ func Eval(env *Env, v any) any {
 			if f, ok := functions[i.value]; ok {
 				return f(env, t.items[1:])
 			}
-			return env.Get(i.value)
+			v := env.Get(i)
+			if l, ok := v.(Lambda); ok {
+				return callambda(l, env, t.items[1:])
+			}
+
+			return v
 
 		case Op:
 			return callop(i, env, t.items[1:])
