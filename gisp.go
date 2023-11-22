@@ -772,6 +772,26 @@ func init() {
 
 			return l.items[len(l.items)-1]
 		},
+
+		//
+		// rest list
+		//
+		"rest": func(env *Env, args []any) any {
+			if len(args) == 0 {
+				return ErrMissing
+			}
+
+			l, ok := args[0].(List)
+			if !ok {
+				return ErrInvalidType
+			}
+
+			if len(l.items) == 0 {
+				return Nil
+			}
+
+			return List{items: l.items[1:]}
+		},
 	}
 }
 

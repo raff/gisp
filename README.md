@@ -21,7 +21,7 @@ My attempt to write a minimal Lisp interpreter (in Go)
 - begin
 - lambda
 
-- first, last
+- first, last, rest
 
 - print
 - println
