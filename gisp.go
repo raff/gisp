@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -1060,21 +1061,26 @@ func Eval(env *Env, v any) any {
 }
 
 func main() {
-	var expr string
+	expr := flag.Bool("e", false, "evaluate expression")
+	flag.BoolVar(&Verbose, "v", Verbose, "verbose")
+	flag.Parse()
 
-	if len(os.Args) > 1 {
-		expr = strings.Join(os.Args[1:], " ")
-	} else {
-		b, err := io.ReadAll(os.Stdin)
+	var p *Parser
+
+	if *expr {
+		p = NewParser(strings.NewReader(strings.Join(flag.Args(), " ")))
+	} else if flag.NArg() > 0 {
+		f, err := os.Open(flag.Arg(0))
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 
-		expr = string(b)
+		p = NewParser(f)
+		defer f.Close()
+	} else {
+		p = NewParser(os.Stdin)
 	}
-
-	p := NewParser(strings.NewReader(expr))
 
 	l, _ := p.Parse()
 
