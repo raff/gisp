@@ -12,8 +12,8 @@ import (
 
 var (
 	ErrInvalid     = fmt.Errorf("invalid-token")
-	ErrInvalidType = fmt.Errorf("invalid-argument-type")
-	ErrMissing     = fmt.Errorf("missing-argument")
+	ErrInvalidType = fmt.Errorf("invalid-parameter-type")
+	ErrMissing     = fmt.Errorf("missing-parameter")
 	Verbose, _     = strconv.ParseBool(os.Getenv("VERBOSE"))
 
 	True = Boolean{value: true}
@@ -645,6 +645,36 @@ func init() {
 
 			return
 		},
+
+		//
+		// let (locals) stmt...
+		//
+		"let": func(env *Env, args []any) (ret any) {
+			if len(args) == 0 {
+				return ErrMissing
+			}
+
+			locals, args := args[0], args[1:]
+			llocals, ok := locals.(List)
+			if !ok {
+				return ErrInvalidType
+			}
+
+			env = NewEnv(env)
+
+			for _, v := range llocals.items {
+				env.PutLocal(v, nil)
+			}
+
+			for _, v := range args {
+				if Verbose {
+					fmt.Println("  ", v)
+				}
+				ret = Eval(env, v)
+			}
+
+			return
+		},
 	}
 }
 
@@ -767,13 +797,25 @@ type Env struct {
 	next *Env
 }
 
-func NewEnv() *Env {
-	return &Env{vars: map[string]any{}}
+func NewEnv(prev *Env) *Env {
+	return &Env{vars: map[string]any{}, next: prev}
+}
+
+func (e *Env) PutLocal(o, value any) any {
+	if s, ok := o.(Symbol); ok {
+		e.vars[s.value] = value
+	}
+
+	return value
 }
 
 func (e *Env) Put(o, value any) any {
 	if s, ok := o.(Symbol); ok {
-		e.vars[s.value] = value
+		if _, ok := e.vars[s.value]; ok || e.next == nil {
+			e.vars[s.value] = value
+		} else {
+			e.next.Put(o, value)
+		}
 	}
 
 	return value
@@ -793,7 +835,6 @@ func (e *Env) Get(o any) any {
 	}
 
 	return Eval(e, o)
-	//return o
 }
 
 func (e *Env) GetList(l []any) (el []any) {
@@ -867,7 +908,7 @@ func main() {
 
 	fmt.Println()
 
-	env := NewEnv()
+	env := NewEnv(nil)
 
 	for _, v := range l {
 		fmt.Println(Eval(env, v))
