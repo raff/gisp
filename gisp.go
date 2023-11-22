@@ -12,6 +12,7 @@ import (
 )
 
 var (
+	ErrEOF         = fmt.Errorf("EOF")
 	ErrInvalid     = fmt.Errorf("invalid-token")
 	ErrInvalidType = fmt.Errorf("invalid-parameter-type")
 	ErrMissing     = fmt.Errorf("missing-parameter")
@@ -364,6 +365,14 @@ func (p *Parser) SepNext() bool {
 }
 
 func (p *Parser) Parse() (l []any, err error) {
+	return p.parse(false)
+}
+
+func (p *Parser) ParseOne() (l []any, err error) {
+	return p.parse(true)
+}
+
+func (p *Parser) parse(one bool) (l []any, err error) {
 	var neg bool
 	var quoted bool
 
@@ -380,6 +389,10 @@ func (p *Parser) Parse() (l []any, err error) {
 		l = append(l, maybequoted(v))
 	}
 
+	if p.s.Peek() == scanner.EOF {
+		return nil, ErrEOF
+	}
+
 	for tok := p.s.Scan(); tok != scanner.EOF; tok = p.s.Scan() {
 		st := p.s.TokenText()
 
@@ -389,7 +402,7 @@ func (p *Parser) Parse() (l []any, err error) {
 
 		switch tok {
 		case '(':
-			vv, err := p.Parse()
+			vv, err := p.parse(false)
 			if err != nil {
 				return nil, err
 			}
@@ -404,6 +417,10 @@ func (p *Parser) Parse() (l []any, err error) {
 			return
 
 		case ' ', '\t', '\n', '\r':
+			if one {
+				fmt.Println("Got", int(tok))
+				return
+			}
 			continue
 
 		case scanner.Ident:
@@ -1100,6 +1117,7 @@ func Eval(env *Env, v any) any {
 
 func main() {
 	expr := flag.Bool("e", false, "evaluate expression")
+	interactive := flag.Bool("i", false, "interfactive")
 	flag.BoolVar(&Verbose, "v", Verbose, "verbose")
 	flag.Parse()
 
@@ -1120,21 +1138,35 @@ func main() {
 		p = NewParser(os.Stdin)
 	}
 
+	env := NewEnv(nil)
+
+	if *interactive {
+		for {
+			l, err := p.ParseOne()
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+
+			for _, v := range l {
+				fmt.Println(Eval(env, v))
+			}
+		}
+
+		return
+	}
+
 	l, err := p.Parse()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	if Verbose {
-		fmt.Println(l)
-	}
-
-	fmt.Println()
-
-	env := NewEnv(nil)
+	var ret any
 
 	for _, v := range l {
-		fmt.Println(Eval(env, v))
+		ret = Eval(env, v)
 	}
+
+	fmt.Println(ret)
 }
