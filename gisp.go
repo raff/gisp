@@ -1,12 +1,9 @@
-package main
+package gisp
 
 import (
-	"flag"
 	"fmt"
 	"io"
-	"os"
 	"strconv"
-	"strings"
 	"text/scanner"
 	"time"
 )
@@ -16,7 +13,7 @@ var (
 	ErrInvalid     = fmt.Errorf("invalid-token")
 	ErrInvalidType = fmt.Errorf("invalid-parameter-type")
 	ErrMissing     = fmt.Errorf("missing-parameter")
-	Verbose, _     = strconv.ParseBool(os.Getenv("VERBOSE"))
+	Verbose        = false
 
 	True = Boolean{value: true}
 	Nil  = Boolean{value: false}
@@ -1126,60 +1123,4 @@ func Eval(env *Env, v any) any {
 	}
 
 	return nil
-}
-
-func main() {
-	expr := flag.Bool("e", false, "evaluate expression")
-	interactive := flag.Bool("i", false, "interfactive")
-	flag.BoolVar(&Verbose, "v", Verbose, "verbose")
-	flag.Parse()
-
-	var p *Parser
-
-	if *expr {
-		p = NewParser(strings.NewReader(strings.Join(flag.Args(), " ")))
-	} else if flag.NArg() > 0 {
-		f, err := os.Open(flag.Arg(0))
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-
-		p = NewParser(f)
-		defer f.Close()
-	} else {
-		p = NewParser(os.Stdin)
-	}
-
-	env := NewEnv(nil)
-
-	if *interactive {
-		for {
-			l, err := p.ParseOne()
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-
-			for _, v := range l {
-				fmt.Println(Eval(env, v))
-			}
-		}
-
-		return
-	}
-
-	l, err := p.Parse()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	var ret any
-
-	for _, v := range l {
-		ret = Eval(env, v)
-	}
-
-	fmt.Println(ret)
 }
