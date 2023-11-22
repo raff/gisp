@@ -1021,40 +1021,58 @@ func NewEnv(prev *Env) *Env {
 	return &Env{vars: map[string]any{}, next: prev}
 }
 
-func (e *Env) PutLocal(o, value any) any {
-	if s, ok := o.(Symbol); ok {
-		e.vars[s.value] = value
+func getname(o any) (string, error) {
+	switch t := o.(type) {
+	case Symbol:
+		return t.value, nil
+
+	case string:
+		return t, nil
 	}
 
+	return "", ErrInvalidType
+}
+
+func (e *Env) PutLocal(o, value any) any {
+	name, err := getname(o)
+	if err != nil {
+		return err
+	}
+
+	e.vars[name] = value
 	return value
 }
 
 func (e *Env) Put(o, value any) any {
-	if s, ok := o.(Symbol); ok {
-		if _, ok := e.vars[s.value]; ok || e.next == nil {
-			e.vars[s.value] = value
-		} else {
-			e.next.Put(o, value)
-		}
+	name, err := getname(o)
+	if err != nil {
+		return err
+	}
+
+	if _, ok := e.vars[name]; ok || e.next == nil {
+		e.vars[name] = value
+	} else {
+		e.next.Put(o, value)
 	}
 
 	return value
 }
 
 func (e *Env) Get(o any) any {
-	if s, ok := o.(Symbol); ok {
-		if v, ok := e.vars[s.value]; ok {
-			return v
-		}
-
-		if e.next != nil {
-			return e.next.Get(o)
-		}
-
-		return Nil
+	name, err := getname(o)
+	if err != nil {
+		return Eval(e, o)
 	}
 
-	return Eval(e, o)
+	if v, ok := e.vars[name]; ok {
+		return v
+	}
+
+	if e.next != nil {
+		return e.next.Get(o)
+	}
+
+	return Nil
 }
 
 func (e *Env) GetList(l []any) (el []any) {
