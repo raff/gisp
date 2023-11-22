@@ -418,7 +418,6 @@ func (p *Parser) parse(one bool) (l []any, err error) {
 
 		case ' ', '\t', '\n', '\r':
 			if one {
-				fmt.Println("Got", int(tok))
 				return
 			}
 			continue
@@ -512,16 +511,30 @@ func init() {
 		// print args
 		//
 		"print": func(env *Env, args []any) any {
-			n, _ := fmt.Print(env.GetList(args)...)
-			return n
+			args = env.GetList(args)
+
+			fmt.Print(args...)
+
+			if len(args) > 0 {
+				return args[len(args)-1]
+			}
+
+			return Nil
 		},
 
 		//
 		// println args...
 		//
 		"println": func(env *Env, args []any) any {
-			n, _ := fmt.Println(env.GetList(args)...)
-			return n
+			args = env.GetList(args)
+
+			fmt.Println(args...)
+
+			if len(args) > 0 {
+				return args[len(args)-1]
+			}
+
+			return Nil
 		},
 
 		//
