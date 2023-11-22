@@ -774,6 +774,33 @@ func init() {
 		},
 
 		//
+		// nth list
+		//
+		"nth": func(env *Env, args []any) any {
+			if len(args) < 2 {
+				return ErrMissing
+			}
+
+			n, ok := args[0].(CanInt)
+			if !ok {
+				return ErrInvalidType
+			}
+
+			l, ok := args[1].(List)
+			if !ok {
+				return ErrInvalidType
+			}
+
+			nn := int(n.Int())
+
+			if nn < 0 || nn >= len(l.items) {
+				return Nil
+			}
+
+			return l.items[nn]
+		},
+
+		//
 		// rest list
 		//
 		"rest": func(env *Env, args []any) any {
