@@ -732,6 +732,46 @@ func init() {
 
 			return Lambda{args: llocals.items, body: args}
 		},
+
+		//
+		// first list
+		//
+		"first": func(env *Env, args []any) any {
+			if len(args) == 0 {
+				return ErrMissing
+			}
+
+			l, ok := args[0].(List)
+			if !ok {
+				return ErrInvalidType
+			}
+
+			if len(l.items) == 0 {
+				return Nil
+			}
+
+			return l.items[0]
+		},
+
+		//
+		// last list
+		//
+		"last": func(env *Env, args []any) any {
+			if len(args) == 0 {
+				return ErrMissing
+			}
+
+			l, ok := args[0].(List)
+			if !ok {
+				return ErrInvalidType
+			}
+
+			if len(l.items) == 0 {
+				return Nil
+			}
+
+			return l.items[len(l.items)-1]
+		},
 	}
 }
 
