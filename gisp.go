@@ -33,6 +33,10 @@ var (
 
 type Call func(env *Env, args []any) any
 
+func AddPrimitive(name string, value Call) {
+	primitives[name] = value
+}
+
 type Object interface {
 	String() string
 	Value() any
@@ -436,6 +440,7 @@ func (p *Parser) parse(one bool) (l []any, err error) {
 			appendtolist(ident(id))
 
 		case scanner.String:
+			st, _ = strconv.Unquote(st)
 			appendtolist(String{value: st})
 
 		case scanner.Int:
