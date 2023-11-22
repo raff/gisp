@@ -23,4 +23,4 @@ My attempt to write a minimal Lisp interpreter (in Go)
 
 - list, first, last, nth, rest
 
-- print, println, sleep
+- print, println, format, sleep

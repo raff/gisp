@@ -508,6 +508,24 @@ func init() {
 		},
 
 		//
+		// format fmt args...
+		//
+		"format": func(env *Env, args []any) any {
+			if len(args) == 0 {
+				return ErrMissing
+			}
+
+			f, args := args[0], env.GetValues(args[1:])
+
+			sfmt, ok := f.(String)
+			if !ok {
+				return ErrInvalidType
+			}
+
+			return fmt.Sprintf(sfmt.String(), args...)
+		},
+
+		//
 		// sleep ms
 		//
 		"sleep": func(env *Env, args []any) any {
@@ -1020,6 +1038,19 @@ func (e *Env) GetList(l []any) (el []any) {
 	return
 }
 
+func (e *Env) GetValues(l []any) (el []any) {
+	for _, v := range l {
+		v = e.Get(v)
+		if o, ok := v.(Object); ok {
+			v = o.Value()
+		}
+
+		el = append(el, v)
+	}
+
+	return
+}
+
 func Eval(env *Env, v any) any {
 	switch t := v.(type) {
 	case String:
@@ -1089,7 +1120,15 @@ func main() {
 		p = NewParser(os.Stdin)
 	}
 
-	l, _ := p.Parse()
+	l, err := p.Parse()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	if Verbose {
+		fmt.Println(l)
+	}
 
 	fmt.Println()
 
