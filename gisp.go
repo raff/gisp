@@ -21,7 +21,7 @@ var (
 
 	boolstring = map[bool]string{
 		false: "nil",
-		true:  "t",
+		true:  "true",
 	}
 
 	boolint = map[bool]int{
@@ -29,7 +29,7 @@ var (
 		true:  1,
 	}
 
-	functions map[string]Call
+	primitives map[string]Call
 )
 
 type Call func(env *Env, args []any) any
@@ -318,7 +318,7 @@ func (o Lambda) Value() any     { return Nil }
 
 func ident(v string) Object {
 	switch v {
-	case "t":
+	case "true":
 		return True
 
 	case "nil":
@@ -489,7 +489,7 @@ func (p *Parser) Parse() (l []any, err error) {
 func init() {
 	// primitive functions
 
-	functions = map[string]Call{
+	primitives = map[string]Call{
 		//
 		// print args
 		//
@@ -566,6 +566,38 @@ func init() {
 			}
 
 			return Nil
+		},
+
+		//
+		// or bool...
+		//
+		"or": func(env *Env, args []any) any {
+			for _, arg := range args {
+				v := env.Get(arg)
+				if b, ok := v.(CanBool); ok {
+					if b.Bool() {
+						return True
+					}
+				}
+			}
+
+			return Nil
+		},
+
+		//
+		// and bool...
+		//
+		"and": func(env *Env, args []any) any {
+			for _, arg := range args {
+				v := env.Get(arg)
+				if b, ok := v.(CanBool); ok {
+					if !b.Bool() {
+						return Nil
+					}
+				}
+			}
+
+			return True
 		},
 
 		//
@@ -919,7 +951,7 @@ func Eval(env *Env, v any) any {
 		}
 		switch i := t.items[0].(type) {
 		case Symbol:
-			if f, ok := functions[i.value]; ok {
+			if f, ok := primitives[i.value]; ok {
 				return f(env, t.items[1:])
 			}
 			v := env.Get(i)
