@@ -629,8 +629,21 @@ func init() {
 				}
 			}
 
-			return ret
+			return
+		},
 
+		//
+		// begin stmt...
+		//
+		"begin": func(env *Env, args []any) (ret any) {
+			for _, v := range args {
+				if Verbose {
+					fmt.Println("  ", v)
+				}
+				ret = Eval(env, v)
+			}
+
+			return
 		},
 	}
 }
