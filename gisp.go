@@ -735,6 +735,13 @@ func init() {
 		},
 
 		//
+		// list items...
+		//
+		"list": func(env *Env, args []any) any {
+			return List{items: args}
+		},
+
+		//
 		// first list
 		//
 		"first": func(env *Env, args []any) any {

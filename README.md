@@ -21,8 +21,6 @@ My attempt to write a minimal Lisp interpreter (in Go)
 - begin
 - lambda
 
-- first, last, nth, rest
+- list, first, last, nth, rest
 
-- print
-- println
-- sleep
+- print, println, sleep
