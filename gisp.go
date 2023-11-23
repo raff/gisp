@@ -31,30 +31,38 @@ var (
 	primitives map[string]Call
 )
 
+// Call is the signature for primitive/builtin methods
 type Call func(env *Env, args []any) any
 
+// AddPrimitive adds a new built-in/primitive method.
+// Note that it can override existing primitives
 func AddPrimitive(name string, value Call) {
 	primitives[name] = value
 }
 
+// Object is the interface for all gisp objects.
 type Object interface {
 	String() string
 	Value() any
 }
 
+// CanInt is for objects that can cast to an integer (int64) value
 type CanInt interface {
 	Int() int64
 }
 
+// CanFloat is for objects that can cast to a float (float64) value
 type CanFloat interface {
 	Float() float64
 }
 
+// CanBool is for objects that can cast to a boolean (true/false)
 type CanBool interface {
 	Bool() bool
 }
 
-type CanCond interface {
+// CanCompare is for objects that can compare with other objects (=, <, <=, >, >=)
+type CanCompare interface {
 	Eq(v any) bool
 	Lt(v any) bool
 	Leq(v any) bool
@@ -62,6 +70,7 @@ type CanCond interface {
 	Geq(v any) bool
 }
 
+// Boolean is the boolean primitive object
 type Boolean struct {
 	value bool
 }
@@ -110,6 +119,7 @@ func (o Boolean) Geq(v any) bool {
 	return true
 }
 
+// Symbol is the symbol atom
 type Symbol struct {
 	value string
 }
@@ -117,6 +127,7 @@ type Symbol struct {
 func (o Symbol) String() string { return fmt.Sprintf("%v", o.value) }
 func (o Symbol) Value() any     { return o.value }
 
+// Quoted is for quoted symbols
 type Quoted struct {
 	value any
 }
@@ -124,6 +135,7 @@ type Quoted struct {
 func (o Quoted) String() string { return fmt.Sprintf("'%v", o.value) }
 func (o Quoted) Value() any     { return o.value }
 
+// Op is for math operators ( +, -, *, / )
 type Op struct {
 	value string
 }
@@ -131,6 +143,7 @@ type Op struct {
 func (o Op) String() string { return fmt.Sprintf("%q", o.value) }
 func (o Op) Value() any     { return o.value }
 
+// Cond is for conditional operators ( =, <, <=, >, >= )
 type Cond struct {
 	value string
 }
@@ -138,6 +151,7 @@ type Cond struct {
 func (o Cond) String() string { return fmt.Sprintf("%q", o.value) }
 func (o Cond) Value() any     { return o.value }
 
+// Integer is the integer primitive type (int64)
 type Integer struct {
 	value int64
 }
@@ -188,6 +202,7 @@ func (o Integer) Geq(v any) bool {
 	return false
 }
 
+// Float is the floating point primitive type (float64)
 type Float struct {
 	value float64
 }
@@ -238,6 +253,7 @@ func (o Float) Geq(v any) bool {
 	return false
 }
 
+// String is the string primitive type
 type String struct {
 	value string
 }
@@ -286,6 +302,7 @@ func (o String) Geq(v any) bool {
 	return false
 }
 
+// List is the list type
 type List struct {
 	items []any
 }
@@ -307,10 +324,15 @@ func (o List) Item(i int) any {
 	return o.items[i]
 }
 
+func (o List) Items() []any {
+	return o.items
+}
+
 func (o List) Bool() bool {
 	return len(o.items) > 0
 }
 
+// Lambda is the anonymous function type
 type Lambda struct {
 	args []any
 	body []any
@@ -318,6 +340,14 @@ type Lambda struct {
 
 func (o Lambda) String() string { return fmt.Sprintf("(lambda %v %v)", o.args, o.body) }
 func (o Lambda) Value() any     { return Nil }
+
+func (o Lambda) Arg(i int) any {
+	if i < 0 || i >= len(o.args) {
+		return nil
+	}
+
+	return o.args[i]
+}
 
 func ident(v string) Object {
 	switch v {
@@ -343,10 +373,12 @@ func quote(v any) any {
 	return v
 }
 
+// Parser can parse a gisp object or program
 type Parser struct {
 	s scanner.Scanner
 }
 
+// NewParser creates a new Parser object that can parse the input Reader
 func NewParser(r io.Reader) *Parser {
 	var p Parser
 
@@ -356,6 +388,7 @@ func NewParser(r io.Reader) *Parser {
 	return &p
 }
 
+// SepNext checks if the next character to parse is a separator between gisp objects
 func (p *Parser) SepNext() bool {
 	switch p.s.Peek() {
 	case ' ', '\r', '\n', '(', ')', scanner.EOF:
@@ -365,10 +398,12 @@ func (p *Parser) SepNext() bool {
 	return false
 }
 
+// Parse parses the input from the Reader until EOF and returns a list of objects
 func (p *Parser) Parse() (l []any, err error) {
 	return p.parse(false)
 }
 
+// ParseOne parses one object from the input
 func (p *Parser) ParseOne() (l []any, err error) {
 	return p.parse(true)
 }
@@ -880,7 +915,8 @@ func init() {
 	}
 }
 
-func callambda(l Lambda, env *Env, args []any) (ret any) {
+// CallLambda call a lambda function, passing the local enviroment and some input parameters
+func CallLambda(l Lambda, env *Env, args []any) (ret any) {
 	lenv := NewEnv(env)
 
 	for i, n := range l.args {
@@ -978,7 +1014,7 @@ func callcond(op Cond, env *Env, args []any) any {
 		return True
 	}
 
-	c1, ok := env.Get(args[0]).(CanCond)
+	c1, ok := env.Get(args[0]).(CanCompare)
 	if !ok {
 		return True
 	}
@@ -1008,7 +1044,7 @@ func callcond(op Cond, env *Env, args []any) any {
 			return Nil
 		}
 
-		c1, ok = c2.(CanCond)
+		c1, ok = c2.(CanCompare)
 		if !ok {
 			break
 		}
@@ -1017,11 +1053,14 @@ func callcond(op Cond, env *Env, args []any) any {
 	return True
 }
 
+// Env stores the current environments (collection of variables)
 type Env struct {
 	vars map[string]any
 	next *Env
 }
 
+// NewEnv creates a new enviroment.
+// The root environment should have prev=nil, local environment will link to the previous (parent) one.
 func NewEnv(prev *Env) *Env {
 	return &Env{vars: map[string]any{}, next: prev}
 }
@@ -1038,6 +1077,7 @@ func getname(o any) (string, error) {
 	return "", ErrInvalidType
 }
 
+// PutLocal creates or update a variable in the local environment
 func (e *Env) PutLocal(o, value any) any {
 	name, err := getname(o)
 	if err != nil {
@@ -1048,6 +1088,8 @@ func (e *Env) PutLocal(o, value any) any {
 	return value
 }
 
+// Put update a variable with the same name, starting from the local environment.
+// If the variable doesn't already exist, it will be created in the global environment.
 func (e *Env) Put(o, value any) any {
 	name, err := getname(o)
 	if err != nil {
@@ -1063,6 +1105,7 @@ func (e *Env) Put(o, value any) any {
 	return value
 }
 
+// Get tries to resolve to an existing variable or evaluate the input.
 func (e *Env) Get(o any) any {
 	name, err := getname(o)
 	if err != nil {
@@ -1080,6 +1123,7 @@ func (e *Env) Get(o any) any {
 	return Nil
 }
 
+// Get resolves all input as variables or evaluates them.
 func (e *Env) GetList(l []any) (el []any) {
 	for _, v := range l {
 		el = append(el, e.Get(v))
@@ -1088,6 +1132,7 @@ func (e *Env) GetList(l []any) (el []any) {
 	return
 }
 
+// GetValues returns the primitive value for the input variables or evaluated objects.
 func (e *Env) GetValues(l []any) (el []any) {
 	for _, v := range l {
 		v = e.Get(v)
@@ -1101,7 +1146,52 @@ func (e *Env) GetValues(l []any) (el []any) {
 	return
 }
 
+// AsBool converts the input object to a boolean, if possible or return the default value.
+func AsBool(o any, def bool) bool {
+	if i, ok := o.(CanBool); ok {
+		return i.Bool()
+	}
+
+	return def
+}
+
+// AsInt converts the input object to an integer, if possible or return the default value.
+func AsInt(o any, def int64) int64 {
+	if i, ok := o.(CanInt); ok {
+		return i.Int()
+	}
+
+	return def
+}
+
+// AsFloat converts the input object to a float, if possible or return the default value.
+func AsFloat(o any, def float64) float64 {
+	if i, ok := o.(CanFloat); ok {
+		return i.Float()
+	}
+
+	return def
+}
+
+// AsString returns the input representation for the input object, or the default.
+func AsString(o any, def string) string {
+	if v, ok := o.(string); ok {
+		return v
+	}
+
+	if v, ok := o.(Object); ok {
+		return v.String()
+	}
+
+	return def
+}
+
+// Eval evaluates the current object
 func Eval(env *Env, v any) any {
+	if Verbose {
+		fmt.Println("eval", v)
+	}
+
 	switch t := v.(type) {
 	case String:
 		return t
@@ -1132,7 +1222,7 @@ func Eval(env *Env, v any) any {
 			}
 			v := env.Get(i)
 			if l, ok := v.(Lambda); ok {
-				return callambda(l, env, t.items[1:])
+				return CallLambda(l, env, t.items[1:])
 			}
 
 			return v
@@ -1143,6 +1233,8 @@ func Eval(env *Env, v any) any {
 		case Cond:
 			return callcond(i, env, t.items[1:])
 		}
+
+		return t
 	}
 
 	return nil
