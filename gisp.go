@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"text/scanner"
 	"time"
+        "math/rand"
 )
 
 var (
@@ -608,6 +609,31 @@ func init() {
 			}
 
 			return ErrInvalidType
+		},
+
+		//
+		// (rand) -> float
+                // (rand n) -> 0..n
+		// (rand a b c d) -> one of a b c d
+		"rand": func(env *Env, args []any) any {
+                        switch len(args) {
+                        case 0:
+				return rand.Float64()
+
+                        case 1:
+			        v := env.Get(args[0])
+			        if v, ok := v.(CanInt); ok {
+				    return rand.Int63n(v.Int())
+			        }
+
+			        return ErrInvalidType
+
+                        default:
+                                n := rand.Intn(len(args))
+                                return args[n]
+                        }
+
+                        return nil
 		},
 
 		//
