@@ -1233,9 +1233,7 @@ func Eval(env *Env, v any) any {
 		case Cond:
 			return callcond(i, env, t.items[1:])
 		}
-
-		return t
 	}
 
-	return nil
+	return v
 }
