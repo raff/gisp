@@ -65,6 +65,7 @@
     (pendown t)
 
     (show t 'turtle)
+    (scale t 2)
     (speed t 10000)
 
     (setcolor t (color 'yellow))

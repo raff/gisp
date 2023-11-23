@@ -4,7 +4,11 @@ go 1.21.4
 
 require (
 	github.com/GaryBrownEEngr/turtle v0.4.0
-	github.com/raff/gisp v0.0.0-20231123042019-1034774e42d6
+	github.com/raff/gisp v1.0.0
+)
+
+replace (
+        github.com/raff/gisp v1.0.0 => ../..
 )
 
 require (
