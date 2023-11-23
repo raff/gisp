@@ -1,10 +1,14 @@
 (turtle (800 800 true) (lambda (t) 
-    (clear t (color 33 20 33))
-    (show t true)
-    (pendown t)
-    (speed t 10000)
+    (clear t (color 33 63 33))
+    (speed t 100)
 
+    (show t 'arrow)
     (fill t (color 'red))
+
+    (goto t -300 -300)
+
+    'left bottom
+    (pendown t)
     (forward t 100)
     (left t 90)
     (forward t 100)
@@ -15,8 +19,53 @@
     (left t 90)
 
     (penup t)
-    (goto t -200 +200)
+    (goto t -300 200)
+
+    'right bottom
     (pendown t)
+    (forward t 100)
+    (left t 90)
+    (forward t 100)
+    (left t 90)
+    (forward t 100)
+    (left t 90)
+    (forward t 100)
+    (left t 180)
+
+    (penup t)
+    (goto t 300 200)
+
+    'right top
+    (pendown t)
+    (forward t 100)
+    (left t 90)
+    (forward t 100)
+    (left t 90)
+    (forward t 100)
+    (left t 90)
+    (forward t 100)
+    (left t 90)
+
+    (penup t)
+    (goto t 300 -300)
+
+    'right top
+    (pendown t)
+    (forward t 100)
+    (left t 90)
+    (forward t 100)
+    (left t 90)
+    (forward t 100)
+    (left t 90)
+    (forward t 100)
+    (left t 90)
+
+    (penup t)
+    (goto t 50 -150)
+    (pendown t)
+
+    (show t 'turtle)
+    (speed t 10000)
 
     (setcolor t (color 'yellow))
     (setq i 0)
@@ -25,6 +74,7 @@
        (dot t 10)
        (forward t 300)
        (left t 177)
+       (panright t 50)
       )
     )
 ))

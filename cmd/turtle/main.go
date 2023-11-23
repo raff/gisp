@@ -169,7 +169,18 @@ func callShow(env *gisp.Env, args []any) any {
 	show := true
 
 	if len(args) > 1 {
-		show = gisp.AsBool(args[1], true)
+		s := gisp.AsString(args[1], "")
+
+		switch s {
+		case "turtle":
+			t.turtle.ShapeAsTurtle()
+
+		case "arrow":
+			t.turtle.ShapeAsArrow()
+
+		default:
+			show = gisp.AsBool(args[1], true)
+		}
 	}
 
 	if show {
@@ -179,6 +190,26 @@ func callShow(env *gisp.Env, args []any) any {
 	}
 
 	return show
+}
+
+// (scale t number)
+func callScale(env *gisp.Env, args []any) any {
+	if len(args) != 2 {
+		return gisp.ErrMissing
+	}
+
+	t, ok := env.Get(args[0]).(Turtle)
+	if !ok {
+		return gisp.ErrInvalidType
+	}
+
+	v, ok := env.Get(args[1]).(gisp.CanFloat)
+	if !ok {
+		return gisp.ErrInvalidType
+	}
+
+	t.turtle.ShapeScale(v.Float())
+	return nil
 }
 
 // (pendown t)
@@ -311,6 +342,26 @@ func callDot(env *gisp.Env, args []any) any {
 	return nil
 }
 
+// (angle t angle)
+func callAngle(env *gisp.Env, args []any) any {
+	if len(args) != 2 {
+		return gisp.ErrMissing
+	}
+
+	t, ok := env.Get(args[0]).(Turtle)
+	if !ok {
+		return gisp.ErrInvalidType
+	}
+
+	a, ok := env.Get(args[1]).(gisp.CanFloat)
+	if !ok {
+		return gisp.ErrInvalidType
+	}
+
+	t.turtle.Angle(a.Float())
+	return nil
+}
+
 // (left t angle)
 func callLeft(env *gisp.Env, args []any) any {
 	if len(args) != 2 {
@@ -348,6 +399,46 @@ func callRight(env *gisp.Env, args []any) any {
 	}
 
 	t.turtle.Right(a.Float())
+	return nil
+}
+
+// (panleft t distance)
+func callPanLeft(env *gisp.Env, args []any) any {
+	if len(args) != 2 {
+		return gisp.ErrMissing
+	}
+
+	t, ok := env.Get(args[0]).(Turtle)
+	if !ok {
+		return gisp.ErrInvalidType
+	}
+
+	d, ok := env.Get(args[1]).(gisp.CanFloat)
+	if !ok {
+		return gisp.ErrInvalidType
+	}
+
+	t.turtle.PanLeftward(d.Float())
+	return nil
+}
+
+// (panright t distance)
+func callPanRight(env *gisp.Env, args []any) any {
+	if len(args) != 2 {
+		return gisp.ErrMissing
+	}
+
+	t, ok := env.Get(args[0]).(Turtle)
+	if !ok {
+		return gisp.ErrInvalidType
+	}
+
+	d, ok := env.Get(args[1]).(gisp.CanFloat)
+	if !ok {
+		return gisp.ErrInvalidType
+	}
+
+	t.turtle.PanRightward(d.Float())
 	return nil
 }
 
@@ -416,6 +507,31 @@ func callGoTo(env *gisp.Env, args []any) any {
 	return nil
 }
 
+// (pointto t x y)
+func callPointTo(env *gisp.Env, args []any) any {
+	if len(args) != 3 {
+		return gisp.ErrMissing
+	}
+
+	t, ok := env.Get(args[0]).(Turtle)
+	if !ok {
+		return gisp.ErrInvalidType
+	}
+
+	x, ok := env.Get(args[1]).(gisp.CanFloat)
+	if !ok {
+		return gisp.ErrInvalidType
+	}
+
+	y, ok := env.Get(args[2]).(gisp.CanFloat)
+	if !ok {
+		return gisp.ErrInvalidType
+	}
+
+	t.turtle.PointToward(x.Float(), y.Float())
+	return nil
+}
+
 func main() {
 	expr := flag.Bool("e", false, "evaluate expression")
 	interactive := flag.Bool("i", false, "interactive")
@@ -443,6 +559,7 @@ func main() {
 	gisp.AddPrimitive("turtle", callTurtle)
 	gisp.AddPrimitive("clear", callClear)
 	gisp.AddPrimitive("show", callShow)
+	gisp.AddPrimitive("scale", callScale)
 	gisp.AddPrimitive("pendown", callPenDown)
 	gisp.AddPrimitive("penup", callPenUp)
 	gisp.AddPrimitive("speed", callSpeed)
@@ -450,11 +567,15 @@ func main() {
 	gisp.AddPrimitive("fill", callSetColor)
 	gisp.AddPrimitive("size", callSize)
 	gisp.AddPrimitive("dot", callDot)
+	gisp.AddPrimitive("angle", callAngle)
 	gisp.AddPrimitive("left", callLeft)
 	gisp.AddPrimitive("right", callRight)
+	gisp.AddPrimitive("panleft", callPanLeft)
+	gisp.AddPrimitive("panright", callPanRight)
 	gisp.AddPrimitive("backward", callBackward)
 	gisp.AddPrimitive("forward", callForward)
 	gisp.AddPrimitive("goto", callGoTo)
+	gisp.AddPrimitive("pointto", callPointTo)
 
 	env := gisp.NewEnv(nil)
 
