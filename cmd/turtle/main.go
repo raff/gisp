@@ -264,13 +264,18 @@ func callSpeed(env *gisp.Env, args []any) any {
 
 // (pencolor t color)
 func callPenColor(env *gisp.Env, args []any) any {
-	if len(args) != 2 {
+	if len(args) < 1 {
 		return gisp.ErrMissing
 	}
 
 	t, ok := env.Get(args[0]).(Turtle)
 	if !ok {
 		return gisp.ErrInvalidType
+	}
+
+	if len(args) == 1 {
+		c := t.turtle.GetColor()
+		return Color{value: c}
 	}
 
 	c, ok := env.Get(args[1]).(Color)
@@ -284,7 +289,7 @@ func callPenColor(env *gisp.Env, args []any) any {
 
 // (fill t color)
 func callFill(env *gisp.Env, args []any) any {
-	if len(args) != 2 {
+	if len(args) < 2 {
 		return gisp.ErrMissing
 	}
 
@@ -304,13 +309,18 @@ func callFill(env *gisp.Env, args []any) any {
 
 // (size t n)
 func callSize(env *gisp.Env, args []any) any {
-	if len(args) != 2 {
+	if len(args) < 1 {
 		return gisp.ErrMissing
 	}
 
 	t, ok := env.Get(args[0]).(Turtle)
 	if !ok {
 		return gisp.ErrInvalidType
+	}
+
+	if len(args) == 1 {
+		s := t.turtle.GetSize()
+		return gisp.MakeFloat(s)
 	}
 
 	a, ok := env.Get(args[1]).(gisp.CanFloat)
@@ -344,13 +354,18 @@ func callDot(env *gisp.Env, args []any) any {
 
 // (angle t angle)
 func callAngle(env *gisp.Env, args []any) any {
-	if len(args) != 2 {
+	if len(args) < 1 {
 		return gisp.ErrMissing
 	}
 
 	t, ok := env.Get(args[0]).(Turtle)
 	if !ok {
 		return gisp.ErrInvalidType
+	}
+
+	if len(args) == 1 {
+		a := t.turtle.GetAngle()
+		return gisp.MakeFloat(a)
 	}
 
 	a, ok := env.Get(args[1]).(gisp.CanFloat)
@@ -507,6 +522,21 @@ func callGoTo(env *gisp.Env, args []any) any {
 	return nil
 }
 
+// (pos t)
+func callPos(env *gisp.Env, args []any) any {
+	if len(args) != 1 {
+		return gisp.ErrMissing
+	}
+
+	t, ok := env.Get(args[0]).(Turtle)
+	if !ok {
+		return gisp.ErrInvalidType
+	}
+
+	x, y := t.turtle.GetPos()
+	return gisp.MakeList(gisp.MakeFloat(x), gisp.MakeFloat(y))
+}
+
 // (pointto t x y)
 func callPointTo(env *gisp.Env, args []any) any {
 	if len(args) != 3 {
@@ -605,6 +635,7 @@ func main() {
 	gisp.AddPrimitive("backward", callBackward)
 	gisp.AddPrimitive("forward", callForward)
 	gisp.AddPrimitive("goto", callGoTo)
+	gisp.AddPrimitive("pos", callPos)
 	gisp.AddPrimitive("pointto", callPointTo)
 	gisp.AddPrimitive("circle", callCircle)
 

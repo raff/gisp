@@ -16,6 +16,8 @@
     (forward t 100)
     (left t 90)
 
+    (println (pos t))
+
     (penup t)
     (goto t -290 -290)
     (fill t (color 'red))
@@ -31,6 +33,8 @@
     (left t 90)
     (forward t 100)
     (left t 180)
+
+    (println (pos t))
 
     (penup t)
     (goto t -290 210)
@@ -48,6 +52,8 @@
     (forward t 100)
     (left t 90)
 
+    (println (pos t))
+
     (penup t)
     (goto t 290 210)
     (fill t (color 'yellow))
@@ -63,6 +69,8 @@
     (left t 90)
     (forward t 100)
     (left t 90)
+
+    (println (pos t))
 
     (penup t)
     (goto t 290 -290)
@@ -89,6 +97,7 @@
        (forward t 300)
        (left t 177)
        (panright t 50)
+       (println "angle" (angle t))
       )
     )
 ))
