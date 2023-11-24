@@ -68,10 +68,16 @@
     (goto t 290 -290)
     (fill t (color 'blue))
 
+    (goto t 300 0)
+    (pencolor t 'white)
+    (pendown t)
+    (circle t 300 360 40)
+
+    (penup t)
     (goto t 50 -150)
+    (pendown t)
 
     (show t 'turtle)
-    (pendown t)
     (scale t 1.0)
     (speed t 1000)
 

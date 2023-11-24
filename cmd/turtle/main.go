@@ -532,6 +532,36 @@ func callPointTo(env *gisp.Env, args []any) any {
 	return nil
 }
 
+// (circle t radius angle steps)
+func callCircle(env *gisp.Env, args []any) any {
+	if len(args) != 4 {
+		return gisp.ErrMissing
+	}
+
+	t, ok := env.Get(args[0]).(Turtle)
+	if !ok {
+		return gisp.ErrInvalidType
+	}
+
+	r, ok := env.Get(args[1]).(gisp.CanFloat)
+	if !ok {
+		return gisp.ErrInvalidType
+	}
+
+	a, ok := env.Get(args[2]).(gisp.CanFloat)
+	if !ok {
+		return gisp.ErrInvalidType
+	}
+
+	s, ok := env.Get(args[3]).(gisp.CanInt)
+	if !ok {
+		return gisp.ErrInvalidType
+	}
+
+	t.turtle.Circle(r.Float(), a.Float(), int(s.Int()))
+	return nil
+}
+
 func main() {
 	expr := flag.Bool("e", false, "evaluate expression")
 	interactive := flag.Bool("i", false, "interactive")
@@ -576,6 +606,7 @@ func main() {
 	gisp.AddPrimitive("forward", callForward)
 	gisp.AddPrimitive("goto", callGoTo)
 	gisp.AddPrimitive("pointto", callPointTo)
+	gisp.AddPrimitive("circle", callCircle)
 
 	env := gisp.NewEnv(nil)
 
