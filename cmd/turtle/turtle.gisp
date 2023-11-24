@@ -34,7 +34,7 @@
 
     (penup t)
     (goto t -290 210)
-    (fill t (color 'green))
+    (fill t (color 'aqua))
 
     'right top
     (goto t 300 200)
@@ -69,9 +69,9 @@
     (fill t (color 'blue))
 
     (goto t 300 0)
-    (pencolor t 'white)
+    (pencolor t (color 'white))
     (pendown t)
-    (circle t 300 360 40)
+    (circle t 300 360 60)
 
     (penup t)
     (goto t 50 -150)
