@@ -262,8 +262,8 @@ func callSpeed(env *gisp.Env, args []any) any {
 	return nil
 }
 
-// (setcolor t color)
-func callSetColor(env *gisp.Env, args []any) any {
+// (pencolor t color)
+func callPenColor(env *gisp.Env, args []any) any {
 	if len(args) != 2 {
 		return gisp.ErrMissing
 	}
@@ -563,8 +563,8 @@ func main() {
 	gisp.AddPrimitive("pendown", callPenDown)
 	gisp.AddPrimitive("penup", callPenUp)
 	gisp.AddPrimitive("speed", callSpeed)
-	gisp.AddPrimitive("setcolor", callSetColor)
-	gisp.AddPrimitive("fill", callSetColor)
+	gisp.AddPrimitive("pencolor", callPenColor)
+	gisp.AddPrimitive("fill", callFill)
 	gisp.AddPrimitive("size", callSize)
 	gisp.AddPrimitive("dot", callDot)
 	gisp.AddPrimitive("angle", callAngle)
