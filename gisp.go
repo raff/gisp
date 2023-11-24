@@ -1212,6 +1212,31 @@ func AsString(o any, def string) string {
 	return def
 }
 
+// MakeBool creates a Boolean object from a bool
+func MakeBool(v bool) Boolean {
+	return Boolean{value: v}
+}
+
+// MakeInt creates an Integer object from an int64
+func MakeInt(v int64) Integer {
+	return Integer{value: v}
+}
+
+// MakeFloat creates a Float object from a float64
+func MakeFloat(v float64) Float {
+	return Float{value: v}
+}
+
+// MakeString creates a String object from a string
+func MakeString(v string) String {
+	return String{value: v}
+}
+
+// MakeList creates a List object from a list of objects
+func MakeList(items ...any) List {
+	return List{items: items}
+}
+
 // Eval evaluates the current object
 func Eval(env *Env, v any) any {
 	if Verbose {
