@@ -3,9 +3,13 @@ package main
 import (
 	"flag"
 	"fmt"
+	"image"
 	"image/color"
 	"os"
 	"strings"
+
+	_ "image/gif"
+	_ "image/png"
 
 	"github.com/GaryBrownEEngr/turtle"
 	"github.com/GaryBrownEEngr/turtle/models"
@@ -179,7 +183,18 @@ func callShow(env *gisp.Env, args []any) any {
 			t.turtle.ShapeAsArrow()
 
 		default:
-			show = gisp.AsBool(args[1], true)
+			if f, err := os.Open(s); err == nil { // it's a file
+				ima, _, err := image.Decode(f)
+				f.Close()
+
+				if err == nil {
+					t.turtle.ShapeAsImage(ima)
+				} else {
+					return gisp.ErrInvalidType
+				}
+			} else {
+				show = gisp.AsBool(args[1], true)
+			}
 		}
 	}
 

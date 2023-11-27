@@ -85,8 +85,8 @@
     (goto t 50 -150)
     (pendown t)
 
-    (show t 'turtle)
-    (scale t 1.0)
+    (show t 'gopher.png)
+    (scale t 0.5)
     (speed t 1000)
 
     (pencolor t (color 'magenta))
