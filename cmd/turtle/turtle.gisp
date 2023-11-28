@@ -3,6 +3,7 @@
     (speed t 1000)
 
     (show t 'arrow)
+    (pencolor t (color 120 120 120))
 
     'left bottom
     (goto t -300 -300)
