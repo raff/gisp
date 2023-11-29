@@ -30,3 +30,5 @@ This is an example of adding new `built-in` methods to gisp, based on https://gi
     (circle t radius angle steps)                 ; draw a circle of radious `radius` 
 
 See the file `turtle.gisp` for a working example
+
+    > go run . turtle.gisp
