@@ -1217,14 +1217,14 @@ func MakeBool(v bool) Boolean {
 	return Boolean{value: v}
 }
 
-// MakeInt creates an Integer object from an int64
-func MakeInt(v int64) Integer {
-	return Integer{value: v}
+// MakeInt creates an Integer object from an int
+func MakeInt[T int8 | int | int16 | int64](v T) Integer {
+	return Integer{value: int64(v)}
 }
 
 // MakeFloat creates a Float object from a float64
-func MakeFloat(v float64) Float {
-	return Float{value: v}
+func MakeFloat[T float32 | float64](v T) Float {
+	return Float{value: float64(v)}
 }
 
 // MakeString creates a String object from a string
