@@ -113,7 +113,6 @@
 	   (setq f (- f 1))
 	 (justpressed t "=")
 	   (setq f (+ f 1))
-	 (nil)
        )
        (dot t 10)
        (forward t f)
