@@ -36,87 +36,155 @@ func (c Turtle) getInputs() models.UserInput {
 	return c.win.GetCanvas().GetUserInput()
 }
 
-func (c Turtle) Pressed(k rune) bool {
+func (c Turtle) pressed(k string) bool {
 	in := c.getInputs()
 	c.input = in
 
 	switch k {
-	case 'A':
+	case "A":
 		return in.KeysDown.A
-	case 'S':
+	case "S":
 		return in.KeysDown.S
 
-	case ' ':
+	case "-":
+		return in.KeysDown.Minus
+	case "=":
+		return in.KeysDown.Equal
+	case "[":
+		return in.KeysDown.OpenSquareBracket
+	case "]":
+		return in.KeysDown.CloseSquareBracket
+
+	case " ":
 		return in.KeysDown.Space
-	case '\n':
+	case "\n":
 		return in.KeysDown.Enter
-	case '\x1b':
+	case "\x1b":
 		return in.KeysDown.Escape
 
-	case '1':
+	case "1":
 		return in.KeysDown.Number1
-	case '2':
+	case "2":
 		return in.KeysDown.Number2
-	case '3':
+	case "3":
 		return in.KeysDown.Number3
-	case '4':
+	case "4":
 		return in.KeysDown.Number4
-	case '5':
+	case "5":
 		return in.KeysDown.Number5
-	case '6':
+	case "6":
 		return in.KeysDown.Number6
-	case '7':
+	case "7":
 		return in.KeysDown.Number7
-	case '8':
+	case "8":
 		return in.KeysDown.Number8
-	case '9':
+	case "9":
 		return in.KeysDown.Number9
-	case '0':
+	case "0":
 		return in.KeysDown.Number0
+
+	case "F1":
+		return in.KeysDown.F1
+	case "F2":
+		return in.KeysDown.F2
+	case "F3":
+		return in.KeysDown.F3
+	case "F4":
+		return in.KeysDown.F4
+	case "F5":
+		return in.KeysDown.F5
+	case "F6":
+		return in.KeysDown.F6
+	case "F7":
+		return in.KeysDown.F7
+	case "F8":
+		return in.KeysDown.F8
+	case "F9":
+		return in.KeysDown.F9
+	case "F10":
+		return in.KeysDown.F10
+	case "F11":
+		return in.KeysDown.F11
+	case "F12":
+		return in.KeysDown.F12
 	}
 
 	return false
 }
 
-func (c Turtle) JustPressed(k rune) bool {
+func (c Turtle) justPressed(k string) bool {
 	in := c.getInputs()
 	defer func() {
 		c.input = in
 	}()
 
 	switch k {
-	case 'A':
+	case "A":
 		return in.KeysDown.A && !c.input.KeysDown.A
-	case 'S':
+	case "S":
 		return in.KeysDown.S && !c.input.KeysDown.S
 
-	case ' ':
+	case "-":
+		return in.KeysDown.Minus && !c.input.KeysDown.Minus
+	case "=":
+		return in.KeysDown.Equal && !c.input.KeysDown.Equal
+	case "[":
+		return in.KeysDown.OpenSquareBracket && !c.input.KeysDown.OpenSquareBracket
+	case "]":
+		return in.KeysDown.CloseSquareBracket && !c.input.KeysDown.CloseSquareBracket
+
+	case " ":
 		return in.KeysDown.Space && !c.input.KeysDown.Space
-	case '\n':
+	case "\n":
 		return in.KeysDown.Enter && !c.input.KeysDown.Enter
-	case '\x1b':
+	case "\x1b":
 		return in.KeysDown.Escape && !c.input.KeysDown.Escape
 
-	case '1':
+	case "1":
 		return in.KeysDown.Number1 && !c.input.KeysDown.Number1
-	case '2':
+	case "2":
 		return in.KeysDown.Number2 && !c.input.KeysDown.Number2
-	case '3':
+	case "3":
 		return in.KeysDown.Number3 && !c.input.KeysDown.Number3
-	case '4':
+	case "4":
 		return in.KeysDown.Number4 && !c.input.KeysDown.Number4
-	case '5':
+	case "5":
 		return in.KeysDown.Number5 && !c.input.KeysDown.Number5
-	case '6':
+	case "6":
 		return in.KeysDown.Number6 && !c.input.KeysDown.Number6
-	case '7':
+	case "7":
 		return in.KeysDown.Number7 && !c.input.KeysDown.Number7
-	case '8':
+	case "8":
 		return in.KeysDown.Number8 && !c.input.KeysDown.Number8
-	case '9':
+	case "9":
 		return in.KeysDown.Number9 && !c.input.KeysDown.Number9
-	case '0':
+	case "0":
 		return in.KeysDown.Number0 && !c.input.KeysDown.Number0
+
+	case "F1":
+		return in.KeysDown.F1 && !c.input.KeysDown.F1
+	case "F2":
+		return in.KeysDown.F2 && !c.input.KeysDown.F2
+	case "F3":
+		return in.KeysDown.F3 && !c.input.KeysDown.F3
+	case "F4":
+		return in.KeysDown.F4 && !c.input.KeysDown.F4
+	case "F5":
+		return in.KeysDown.F5 && !c.input.KeysDown.F5
+	case "F6":
+		return in.KeysDown.F6 && !c.input.KeysDown.F6
+	case "F7":
+		return in.KeysDown.F7 && !c.input.KeysDown.F7
+	case "F8":
+		return in.KeysDown.F8 && !c.input.KeysDown.F8
+	case "F9":
+		return in.KeysDown.F9 && !c.input.KeysDown.F9
+	case "F10":
+		return in.KeysDown.F10 && !c.input.KeysDown.F10
+	case "F11":
+		return in.KeysDown.F11 && !c.input.KeysDown.F11
+	case "F12":
+		return in.KeysDown.F12 && !c.input.KeysDown.F12
 	}
 
 	return false
@@ -713,8 +781,7 @@ func callPressed(env *gisp.Env, args []any) any {
 		return gisp.ErrInvalidType
 	}
 
-	r := []rune(s)
-	return gisp.MakeBool(t.Pressed(r[0]))
+	return gisp.MakeBool(t.pressed(s))
 }
 
 func callJustPressed(env *gisp.Env, args []any) any {
@@ -732,8 +799,23 @@ func callJustPressed(env *gisp.Env, args []any) any {
 		return gisp.ErrInvalidType
 	}
 
-	r := []rune(s)
-	return gisp.MakeBool(t.JustPressed(r[0]))
+	return gisp.MakeBool(t.justPressed(s))
+}
+
+// (mousepos t)
+func callMousePos(env *gisp.Env, args []any) any {
+	if len(args) != 1 {
+		return gisp.ErrMissing
+	}
+
+	t, ok := env.Get(args[0]).(Turtle)
+	if !ok {
+		return gisp.ErrInvalidType
+	}
+
+	in := t.getInputs()
+
+	return gisp.MakeList(gisp.MakeInt(in.MouseX), gisp.MakeInt(in.MouseY), gisp.MakeFloat(in.MouseScroll))
 }
 
 func main() {
@@ -784,6 +866,7 @@ func main() {
 	gisp.AddPrimitive("circle", callCircle)
 	gisp.AddPrimitive("pressed", callPressed)
 	gisp.AddPrimitive("justpressed", callJustPressed)
+	gisp.AddPrimitive("mousepos", callMousePos)
 
 	env := gisp.NewEnv(nil)
 
