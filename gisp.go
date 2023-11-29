@@ -723,7 +723,8 @@ func init() {
 			var barg any
 
 			for {
-				barg, args = env.Get(args[0]), args[1:]
+				barg, args = env.Get(args[0]), args[1:] // cond, expr
+
 				bval, ok := barg.(CanBool)
 				if !ok {
 					return barg
@@ -740,11 +741,11 @@ func init() {
 
 				// else
 				switch len(args) {
-				case 0:
+				case 0, 1: // skip if expr
 					return Nil
 
-				case 1:
-					return env.Get(args[0])
+				case 2: // return else expr
+					return env.Get(args[1])
 				}
 
 				// else if
