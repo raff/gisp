@@ -541,6 +541,14 @@ func (p *Parser) parse(one bool) (l []any, err error) {
 	return
 }
 
+func invalidType(v any) error {
+	if Verbose {
+		fmt.Printf("invalid (%T) %#v", v, v)
+	}
+
+	return ErrInvalidType
+}
+
 func init() {
 	// primitive functions
 
@@ -587,7 +595,7 @@ func init() {
 
 			sfmt, ok := f.(String)
 			if !ok {
-				return ErrInvalidType
+				return invalidType(f)
 			}
 
 			return fmt.Sprintf(sfmt.String(), args...)
@@ -608,7 +616,7 @@ func init() {
 				return tm
 			}
 
-			return ErrInvalidType
+			return invalidType(v)
 		},
 
 		//
@@ -626,7 +634,7 @@ func init() {
 					return rand.Int63n(v.Int())
 				}
 
-				return ErrInvalidType
+				return invalidType(v)
 
 			default:
 				n := rand.Intn(len(args))
@@ -810,7 +818,7 @@ func init() {
 			locals, args := args[0], args[1:]
 			llocals, ok := locals.(List)
 			if !ok {
-				return ErrInvalidType
+				return invalidType(locals)
 			}
 
 			env = NewEnv(env)
@@ -840,7 +848,7 @@ func init() {
 			locals, args := args[0], args[1:]
 			llocals, ok := locals.(List)
 			if !ok {
-				return ErrInvalidType
+				return invalidType(locals)
 			}
 
 			return Lambda{args: llocals.items, body: args}
@@ -863,7 +871,7 @@ func init() {
 
 			l, ok := args[0].(List)
 			if !ok {
-				return ErrInvalidType
+				return invalidType(args[0])
 			}
 
 			if len(l.items) == 0 {
@@ -883,7 +891,7 @@ func init() {
 
 			l, ok := args[0].(List)
 			if !ok {
-				return ErrInvalidType
+				return invalidType(args[0])
 			}
 
 			if len(l.items) == 0 {
@@ -903,12 +911,12 @@ func init() {
 
 			n, ok := args[0].(CanInt)
 			if !ok {
-				return ErrInvalidType
+				return invalidType(args[0])
 			}
 
 			l, ok := args[1].(List)
 			if !ok {
-				return ErrInvalidType
+				return invalidType(args[1])
 			}
 
 			nn := int(n.Int())
@@ -930,7 +938,7 @@ func init() {
 
 			l, ok := args[0].(List)
 			if !ok {
-				return ErrInvalidType
+				return invalidType(args[0])
 			}
 
 			if len(l.items) == 0 {
@@ -986,7 +994,7 @@ func callop(op Op, env *Env, args []any) any {
 
 			ii, ok := a.(CanInt)
 			if !ok {
-				return ErrInvalidType
+				return invalidType(a)
 			}
 
 			switch op.value {
@@ -1013,7 +1021,7 @@ func callop(op Op, env *Env, args []any) any {
 
 			ii, ok := a.(CanFloat)
 			if !ok {
-				return ErrInvalidType
+				return invalidType(a)
 			}
 
 			switch op.value {
@@ -1033,7 +1041,7 @@ func callop(op Op, env *Env, args []any) any {
 		return Float{value: v}
 	}
 
-	return ErrInvalidType
+	return invalidType(first)
 }
 
 func callcond(op Cond, env *Env, args []any) any {
