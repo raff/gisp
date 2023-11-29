@@ -92,11 +92,18 @@
 
     (pencolor t (color 'magenta))
     (setq i 0)
+    (setq a 177)
+
     (while (< i 100)
       (begin
+       (if (justpressed t 'a) 
+	 (setq a (+ a 1))
+	 (justpressed t 's)
+	 (setq a (- a 1))
+       )
        (dot t 10)
        (forward t 300)
-       (left t 177)
+       (left t a)
        (panright t 50)
        (println "angle" (angle t))
       )

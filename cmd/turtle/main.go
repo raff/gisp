@@ -26,10 +26,101 @@ func (c Color) Value() any     { return c.value }
 type Turtle struct {
 	win    turtle.Window
 	turtle models.Turtle
+	input  models.UserInput
 }
 
 func (c Turtle) String() string { return "Turtle{}" }
 func (c Turtle) Value() any     { return gisp.Nil }
+
+func (c Turtle) getInputs() models.UserInput {
+	return c.win.GetCanvas().GetUserInput()
+}
+
+func (c Turtle) Pressed(k rune) bool {
+	in := c.getInputs()
+	c.input = in
+
+	switch k {
+	case 'A':
+		return in.KeysDown.A
+	case 'S':
+		return in.KeysDown.S
+
+	case ' ':
+		return in.KeysDown.Space
+	case '\n':
+		return in.KeysDown.Enter
+	case '\x1b':
+		return in.KeysDown.Escape
+
+	case '1':
+		return in.KeysDown.Number1
+	case '2':
+		return in.KeysDown.Number2
+	case '3':
+		return in.KeysDown.Number3
+	case '4':
+		return in.KeysDown.Number4
+	case '5':
+		return in.KeysDown.Number5
+	case '6':
+		return in.KeysDown.Number6
+	case '7':
+		return in.KeysDown.Number7
+	case '8':
+		return in.KeysDown.Number8
+	case '9':
+		return in.KeysDown.Number9
+	case '0':
+		return in.KeysDown.Number0
+	}
+
+	return false
+}
+
+func (c Turtle) JustPressed(k rune) bool {
+	in := c.getInputs()
+	defer func() {
+		c.input = in
+	}()
+
+	switch k {
+	case 'A':
+		return in.KeysDown.A && !c.input.KeysDown.A
+	case 'S':
+		return in.KeysDown.S && !c.input.KeysDown.S
+
+	case ' ':
+		return in.KeysDown.Space && !c.input.KeysDown.Space
+	case '\n':
+		return in.KeysDown.Enter && !c.input.KeysDown.Enter
+	case '\x1b':
+		return in.KeysDown.Escape && !c.input.KeysDown.Escape
+
+	case '1':
+		return in.KeysDown.Number1 && !c.input.KeysDown.Number1
+	case '2':
+		return in.KeysDown.Number2 && !c.input.KeysDown.Number2
+	case '3':
+		return in.KeysDown.Number3 && !c.input.KeysDown.Number3
+	case '4':
+		return in.KeysDown.Number4 && !c.input.KeysDown.Number4
+	case '5':
+		return in.KeysDown.Number5 && !c.input.KeysDown.Number5
+	case '6':
+		return in.KeysDown.Number6 && !c.input.KeysDown.Number6
+	case '7':
+		return in.KeysDown.Number7 && !c.input.KeysDown.Number7
+	case '8':
+		return in.KeysDown.Number8 && !c.input.KeysDown.Number8
+	case '9':
+		return in.KeysDown.Number9 && !c.input.KeysDown.Number9
+	case '0':
+		return in.KeysDown.Number0 && !c.input.KeysDown.Number0
+	}
+
+	return false
+}
 
 var namedcolors = map[string]color.RGBA{
 	"black": turtle.Black,
@@ -607,6 +698,44 @@ func callCircle(env *gisp.Env, args []any) any {
 	return nil
 }
 
+func callPressed(env *gisp.Env, args []any) any {
+	if len(args) != 2 {
+		return gisp.ErrMissing
+	}
+
+	t, ok := env.Get(args[0]).(Turtle)
+	if !ok {
+		return gisp.ErrInvalidType
+	}
+
+	s := gisp.AsString(args[1], "")
+	if len(s) == 0 {
+		return gisp.ErrInvalidType
+	}
+
+	r := []rune(s)
+	return gisp.MakeBool(t.Pressed(r[0]))
+}
+
+func callJustPressed(env *gisp.Env, args []any) any {
+	if len(args) != 2 {
+		return gisp.ErrMissing
+	}
+
+	t, ok := env.Get(args[0]).(Turtle)
+	if !ok {
+		return gisp.ErrInvalidType
+	}
+
+	s := gisp.AsString(args[1], "")
+	if len(s) == 0 {
+		return gisp.ErrInvalidType
+	}
+
+	r := []rune(s)
+	return gisp.MakeBool(t.JustPressed(r[0]))
+}
+
 func main() {
 	expr := flag.Bool("e", false, "evaluate expression")
 	interactive := flag.Bool("i", false, "interactive")
@@ -653,6 +782,8 @@ func main() {
 	gisp.AddPrimitive("pos", callPos)
 	gisp.AddPrimitive("pointto", callPointTo)
 	gisp.AddPrimitive("circle", callCircle)
+	gisp.AddPrimitive("pressed", callPressed)
+	gisp.AddPrimitive("justpressed", callJustPressed)
 
 	env := gisp.NewEnv(nil)
 
