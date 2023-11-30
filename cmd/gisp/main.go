@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/raff/gisp"
+	"github.com/raff/readliner"
 )
 
 func main() {
@@ -28,13 +29,11 @@ func main() {
 
 		p = gisp.NewParser(f)
 		defer f.Close()
-		/*
-			} else if *interactive {
-				rl := NewReadLiner("> ", ".gisp_history")
-				rl.SetEol("\n\n") // not sure of why
-				defer rl.Close()
-				p = gisp.NewParser(rl)
-		*/
+	} else if *interactive {
+		rl := readliner.New("> ", ".gisp_history")
+		rl.SetEol("\n\n") // not sure of why
+		defer rl.Close()
+		p = gisp.NewParser(rl)
 	} else {
 		p = gisp.NewParser(os.Stdin)
 	}
