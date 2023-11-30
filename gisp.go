@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"slices"
 	"strconv"
+	"strings"
 	"text/scanner"
 	"time"
 )
@@ -606,6 +608,7 @@ func init() {
 		//
 		"sleep": func(env *Env, args []any) any {
 			if len(args) == 0 {
+
 				return ErrMissing
 			}
 
@@ -641,7 +644,81 @@ func init() {
 				return args[n]
 			}
 
-			return nil
+			return Nil
+		},
+
+		//
+		// find needle haysstack
+		//
+		"find": func(env *Env, args []any) any {
+			if len(args) != 2 {
+				return ErrMissing
+			}
+
+			n := env.Get(args[0])
+			s := env.Get(args[1])
+
+			switch t := s.(type) {
+			case String:
+				if ss, ok := n.(String); ok {
+					if p := strings.Index(t.String(), ss.String()); p > 0 {
+						return p
+					}
+
+					return Nil
+				}
+
+			case List:
+				if p := slices.Index(t.items, n); p > 0 {
+					return p
+				}
+
+				return Nil
+			}
+
+			return ErrInvalidType
+		},
+
+		//
+		// append string string... | list list...
+		//
+		"append": func(env *Env, args []any) any {
+			if len(args) == 0 {
+				return List{}
+			}
+
+			args = env.GetList(args)
+
+			switch t := args[0].(type) {
+			case String:
+				var sb strings.Builder
+				sb.WriteString(t.value)
+
+				for _, v := range args[1:] {
+					s, ok := v.(String)
+					if !ok {
+						return ErrInvalidType
+					}
+
+					sb.WriteString(s.value)
+				}
+
+				return String{value: sb.String()}
+
+			case List:
+				for _, v := range args[1:] {
+					ll, ok := v.(List)
+					if !ok {
+						return ErrInvalidType
+					}
+
+					t.items = append(t.items, ll.items...)
+				}
+
+				return t
+			}
+
+			return ErrInvalidType
 		},
 
 		//
@@ -1210,12 +1287,15 @@ func AsFloat(o any, def float64) float64 {
 
 // AsString returns the input representation for the input object, or the default.
 func AsString(o any, def string) string {
-	if v, ok := o.(string); ok {
-		return v
-	}
+	switch t := o.(type) {
+	case string:
+		return t
 
-	if v, ok := o.(Object); ok {
-		return v.String()
+	case Quoted:
+		return t.value.(Object).String()
+
+	case Object:
+		return t.String()
 	}
 
 	return def
