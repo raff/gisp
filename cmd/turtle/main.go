@@ -26,165 +26,23 @@ func (c Color) Value() any     { return c.value }
 type Turtle struct {
 	win    turtle.Window
 	turtle models.Turtle
-	input  models.UserInput
+	input  chan *models.UserInput
 }
 
 func (c Turtle) String() string { return "Turtle{}" }
 func (c Turtle) Value() any     { return gisp.Nil }
 
-func (c Turtle) getInputs() models.UserInput {
-	return c.win.GetCanvas().GetUserInput()
-}
-
 func (c Turtle) pressed(k string) bool {
-	in := c.getInputs()
-	c.input = in
-
-	switch k {
-	case "A":
-		return in.KeysDown.A
-	case "S":
-		return in.KeysDown.S
-
-	case "-":
-		return in.KeysDown.Minus
-	case "=":
-		return in.KeysDown.Equal
-	case "[":
-		return in.KeysDown.OpenSquareBracket
-	case "]":
-		return in.KeysDown.CloseSquareBracket
-
-	case " ":
-		return in.KeysDown.Space
-	case "\n":
-		return in.KeysDown.Enter
-	case "\x1b":
-		return in.KeysDown.Escape
-
-	case "1":
-		return in.KeysDown.Number1
-	case "2":
-		return in.KeysDown.Number2
-	case "3":
-		return in.KeysDown.Number3
-	case "4":
-		return in.KeysDown.Number4
-	case "5":
-		return in.KeysDown.Number5
-	case "6":
-		return in.KeysDown.Number6
-	case "7":
-		return in.KeysDown.Number7
-	case "8":
-		return in.KeysDown.Number8
-	case "9":
-		return in.KeysDown.Number9
-	case "0":
-		return in.KeysDown.Number0
-
-	case "F1":
-		return in.KeysDown.F1
-	case "F2":
-		return in.KeysDown.F2
-	case "F3":
-		return in.KeysDown.F3
-	case "F4":
-		return in.KeysDown.F4
-	case "F5":
-		return in.KeysDown.F5
-	case "F6":
-		return in.KeysDown.F6
-	case "F7":
-		return in.KeysDown.F7
-	case "F8":
-		return in.KeysDown.F8
-	case "F9":
-		return in.KeysDown.F9
-	case "F10":
-		return in.KeysDown.F10
-	case "F11":
-		return in.KeysDown.F11
-	case "F12":
-		return in.KeysDown.F12
-	}
-
-	return false
+	in := c.win.GetCanvas().PressedUserInput()
+	return in.IsPressedByName(k)
 }
 
 func (c Turtle) justPressed(k string) bool {
-	in := c.getInputs()
-	defer func() {
-		c.input = in
-	}()
-
-	switch k {
-	case "A":
-		return in.KeysDown.A && !c.input.KeysDown.A
-	case "S":
-		return in.KeysDown.S && !c.input.KeysDown.S
-
-	case "-":
-		return in.KeysDown.Minus && !c.input.KeysDown.Minus
-	case "=":
-		return in.KeysDown.Equal && !c.input.KeysDown.Equal
-	case "[":
-		return in.KeysDown.OpenSquareBracket && !c.input.KeysDown.OpenSquareBracket
-	case "]":
-		return in.KeysDown.CloseSquareBracket && !c.input.KeysDown.CloseSquareBracket
-
-	case " ":
-		return in.KeysDown.Space && !c.input.KeysDown.Space
-	case "\n":
-		return in.KeysDown.Enter && !c.input.KeysDown.Enter
-	case "\x1b":
-		return in.KeysDown.Escape && !c.input.KeysDown.Escape
-
-	case "1":
-		return in.KeysDown.Number1 && !c.input.KeysDown.Number1
-	case "2":
-		return in.KeysDown.Number2 && !c.input.KeysDown.Number2
-	case "3":
-		return in.KeysDown.Number3 && !c.input.KeysDown.Number3
-	case "4":
-		return in.KeysDown.Number4 && !c.input.KeysDown.Number4
-	case "5":
-		return in.KeysDown.Number5 && !c.input.KeysDown.Number5
-	case "6":
-		return in.KeysDown.Number6 && !c.input.KeysDown.Number6
-	case "7":
-		return in.KeysDown.Number7 && !c.input.KeysDown.Number7
-	case "8":
-		return in.KeysDown.Number8 && !c.input.KeysDown.Number8
-	case "9":
-		return in.KeysDown.Number9 && !c.input.KeysDown.Number9
-	case "0":
-		return in.KeysDown.Number0 && !c.input.KeysDown.Number0
-
-	case "F1":
-		return in.KeysDown.F1 && !c.input.KeysDown.F1
-	case "F2":
-		return in.KeysDown.F2 && !c.input.KeysDown.F2
-	case "F3":
-		return in.KeysDown.F3 && !c.input.KeysDown.F3
-	case "F4":
-		return in.KeysDown.F4 && !c.input.KeysDown.F4
-	case "F5":
-		return in.KeysDown.F5 && !c.input.KeysDown.F5
-	case "F6":
-		return in.KeysDown.F6 && !c.input.KeysDown.F6
-	case "F7":
-		return in.KeysDown.F7 && !c.input.KeysDown.F7
-	case "F8":
-		return in.KeysDown.F8 && !c.input.KeysDown.F8
-	case "F9":
-		return in.KeysDown.F9 && !c.input.KeysDown.F9
-	case "F10":
-		return in.KeysDown.F10 && !c.input.KeysDown.F10
-	case "F11":
-		return in.KeysDown.F11 && !c.input.KeysDown.F11
-	case "F12":
-		return in.KeysDown.F12 && !c.input.KeysDown.F12
+	in := turtle.GetNewestJustPressedFromChan(c.input)
+	if in != nil {
+		p := in.IsPressedByName(k)
+fmt.Println("isPressedByName", k, p)
+                return p
 	}
 
 	return false
@@ -280,7 +138,9 @@ func callTurtle(env *gisp.Env, args []any) any {
 	}
 
 	turtle.Start(params, func(w turtle.Window) {
-		gisp.CallLambda(ldraw, env, []any{Turtle{win: w, turtle: w.NewTurtle()}})
+		t := Turtle{win: w, turtle: w.NewTurtle()}
+		t.input = t.win.GetCanvas().SubscribeToJustPressedUserInput()
+		gisp.CallLambda(ldraw, env, []any{t})
 	})
 
 	return gisp.Nil
@@ -813,9 +673,8 @@ func callMousePos(env *gisp.Env, args []any) any {
 		return gisp.ErrInvalidType
 	}
 
-	in := t.getInputs()
-
-	return gisp.MakeList(gisp.MakeInt(in.MouseX), gisp.MakeInt(in.MouseY), gisp.MakeFloat(in.MouseScroll))
+        in := t.win.GetCanvas().PressedUserInput()
+	return gisp.MakeList(gisp.MakeInt(in.Mouse.MouseX), gisp.MakeInt(in.Mouse.MouseY), gisp.MakeFloat(in.Mouse.MouseScroll))
 }
 
 func main() {

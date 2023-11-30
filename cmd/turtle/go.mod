@@ -3,13 +3,11 @@ module github.com/raff/gisp/cmd/turtle
 go 1.21.4
 
 require (
-	github.com/GaryBrownEEngr/turtle v0.4.0
+	github.com/GaryBrownEEngr/turtle v0.5.0
 	github.com/raff/gisp v1.0.0
 )
 
-replace (
-        github.com/raff/gisp v1.0.0 => ../..
-)
+replace github.com/raff/gisp v1.0.0 => ../..
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect

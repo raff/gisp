@@ -1,6 +1,6 @@
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
-github.com/GaryBrownEEngr/turtle v0.4.0 h1:3jLOysyLdxFTfTlofLieAWwbMYMbMSWq4fhuGUNm9FU=
-github.com/GaryBrownEEngr/turtle v0.4.0/go.mod h1:AtJyg9HjIPIkiNwouS/+XeH0P76BNkUX1t9Eut1j7Ck=
+github.com/GaryBrownEEngr/turtle v0.5.0 h1:rTuEwVakXnT0mmP9QeVflULeDFhp+j/Puh/SUNyU2PI=
+github.com/GaryBrownEEngr/turtle v0.5.0/go.mod h1:AtJyg9HjIPIkiNwouS/+XeH0P76BNkUX1t9Eut1j7Ck=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/ebitengine/purego v0.5.0 h1:JrMGKfRIAM4/QVKaesIIT7m/UVjTj5GYhRSQYwfVdpo=
@@ -11,8 +11,6 @@ github.com/jezek/xgb v1.1.0 h1:wnpxJzP1+rkbGclEkmwpVFQWpuE2PUGNUzP8SbfFobk=
 github.com/jezek/xgb v1.1.0/go.mod h1:nrhwO0FX/enq75I7Y7G8iN1ubpSGZEiA3v9e9GyRFlk=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/raff/gisp v0.0.0-20231123042019-1034774e42d6 h1:+A86krPlpGcgxtJGE/FZdk/Q2ZqbHPyTKs+SynMilG0=
-github.com/raff/gisp v0.0.0-20231123042019-1034774e42d6/go.mod h1:s5raDtZnxqub5scIqRqcrzzOB7okw+ty3KMsE4day98=
 github.com/stretchr/objx v0.5.0 h1:1zr/of2m5FGMsad5YfcqgdqdWrIhu+EBEJRhR1U7z/c=
 github.com/stretchr/objx v0.5.0/go.mod h1:Yh+to48EsGEfYuaHDzXPcE3xhTkx73EhmCGUpEOglKo=
 github.com/stretchr/testify v1.8.4 h1:CcVxjf3Q8PM0mHUKJCdn+eZZtm5yQwehR5yeSVQQcUk=
