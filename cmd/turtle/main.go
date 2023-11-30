@@ -37,15 +37,8 @@ func (c Turtle) pressed(k string) bool {
 	return in.IsPressedByName(k)
 }
 
-func (c Turtle) justPressed(k string) bool {
-	in := turtle.GetNewestJustPressedFromChan(c.input)
-	if in != nil {
-		p := in.IsPressedByName(k)
-fmt.Println("isPressedByName", k, p)
-                return p
-	}
-
-	return false
+func (c Turtle) justPressed() *models.UserInput {
+	return turtle.GetNewestJustPressedFromChan(c.input)
 }
 
 var namedcolors = map[string]color.RGBA{
@@ -143,6 +136,21 @@ func callTurtle(env *gisp.Env, args []any) any {
 		gisp.CallLambda(ldraw, env, []any{t})
 	})
 
+	return gisp.Nil
+}
+
+// (exit t)
+func callExit(env *gisp.Env, args []any) any {
+	if len(args) != 1 {
+		return gisp.ErrMissing
+	}
+
+	t, ok := env.Get(args[0]).(Turtle)
+	if !ok {
+		return gisp.ErrInvalidType
+	}
+
+	t.win.GetCanvas().Exit()
 	return gisp.Nil
 }
 
@@ -626,6 +634,7 @@ func callCircle(env *gisp.Env, args []any) any {
 	return nil
 }
 
+// (pressed key)
 func callPressed(env *gisp.Env, args []any) any {
 	if len(args) != 2 {
 		return gisp.ErrMissing
@@ -644,8 +653,9 @@ func callPressed(env *gisp.Env, args []any) any {
 	return gisp.MakeBool(t.pressed(s))
 }
 
+// (justpressed key key...)
 func callJustPressed(env *gisp.Env, args []any) any {
-	if len(args) != 2 {
+	if len(args) < 2 {
 		return gisp.ErrMissing
 	}
 
@@ -654,12 +664,25 @@ func callJustPressed(env *gisp.Env, args []any) any {
 		return gisp.ErrInvalidType
 	}
 
-	s := gisp.AsString(args[1], "")
-	if len(s) == 0 {
-		return gisp.ErrInvalidType
+	var l []any
+
+	in := t.justPressed()
+	if in == nil {
+		return gisp.MakeList(l...)
 	}
 
-	return gisp.MakeBool(t.justPressed(s))
+	for _, v := range args[1:] {
+		k := gisp.AsString(v, "")
+		if len(k) == 0 {
+			return gisp.ErrInvalidType
+		}
+
+		if in.IsPressedByName(k) {
+			l = append(l, gisp.MakeString(k))
+		}
+	}
+
+	return gisp.MakeList(l...)
 }
 
 // (mousepos t)
@@ -673,7 +696,7 @@ func callMousePos(env *gisp.Env, args []any) any {
 		return gisp.ErrInvalidType
 	}
 
-        in := t.win.GetCanvas().PressedUserInput()
+	in := t.win.GetCanvas().PressedUserInput()
 	return gisp.MakeList(gisp.MakeInt(in.Mouse.MouseX), gisp.MakeInt(in.Mouse.MouseY), gisp.MakeFloat(in.Mouse.MouseScroll))
 }
 
@@ -702,6 +725,7 @@ func main() {
 
 	gisp.AddPrimitive("color", callColor)
 	gisp.AddPrimitive("turtle", callTurtle)
+	gisp.AddPrimitive("exit", callExit)
 	gisp.AddPrimitive("clear", callClear)
 	gisp.AddPrimitive("show", callShow)
 	gisp.AddPrimitive("scale", callScale)
