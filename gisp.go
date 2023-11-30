@@ -12,10 +12,10 @@ import (
 )
 
 var (
-	ErrEOF         = fmt.Errorf("EOF")
-	ErrInvalid     = fmt.Errorf("invalid-token")
-	ErrInvalidType = fmt.Errorf("invalid-parameter-type")
-	ErrMissing     = fmt.Errorf("missing-parameter")
+	ErrEOF         = Error{value: fmt.Errorf("EOF")}
+	ErrInvalid     = Error{value: fmt.Errorf("invalid-token")}
+	ErrInvalidType = Error{value: fmt.Errorf("invalid-parameter-type")}
+	ErrMissing     = Error{value: fmt.Errorf("missing-parameter")}
 	Verbose        = false
 
 	True = Boolean{value: true}
@@ -72,6 +72,15 @@ type CanCompare interface {
 	Gt(v any) bool
 	Geq(v any) bool
 }
+
+// Error is a primitive object that maps errors
+type Error struct {
+        value error
+}
+
+func (o Error) String() string { return o.value.Error() }
+func (o Error) Value() any     { return o.value }
+func (o Error) Error() string  { return o.value.Error() }
 
 // Boolean is the boolean primitive object
 type Boolean struct {
@@ -674,6 +683,30 @@ func init() {
 				}
 
 				return Nil
+			}
+
+			return ErrInvalidType
+		},
+
+		//
+		// contains needle haysstack
+		//
+		"contains": func(env *Env, args []any) any {
+			if len(args) != 2 {
+				return ErrMissing
+			}
+
+			n := env.Get(args[0])
+			s := env.Get(args[1])
+
+			switch t := s.(type) {
+			case String:
+				if ss, ok := n.(String); ok {
+					return Boolean{value: strings.Contains(t.String(), ss.String())}
+				}
+
+			case List:
+				return Boolean{value: slices.Contains(t.items, n)}
 			}
 
 			return ErrInvalidType
