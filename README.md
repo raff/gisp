@@ -22,7 +22,7 @@ My attempt to write a minimal Lisp interpreter (in Go)
 - begin
 - lambda
 
-- list, first, last, nth, rest
+- list, first, last, nth, rest, find, append
 
 - print, println, format, sleep, rand
 

@@ -43,6 +43,16 @@ func AddPrimitive(name string, value Call) {
 	primitives[name] = value
 }
 
+// Primitives returns a list of primivives (names)
+// Note that this doesn't return the math and conditional operators.
+func Primitives() (l []string) {
+	for k, _ := range primitives {
+		l = append(l, k)
+	}
+
+	return
+}
+
 // Object is the interface for all gisp objects.
 type Object interface {
 	String() string
@@ -75,7 +85,7 @@ type CanCompare interface {
 
 // Error is a primitive object that maps errors
 type Error struct {
-        value error
+	value error
 }
 
 func (o Error) String() string { return o.value.Error() }
