@@ -1070,7 +1070,7 @@ func init() {
 				return invalidType(args[0])
 			}
 
-			l, ok := env.Get(args[0]).(List)
+			l, ok := env.Get(args[1]).(List)
 			if !ok {
 				return invalidType(args[1])
 			}
