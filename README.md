@@ -24,7 +24,7 @@ My attempt to write a minimal Lisp interpreter (in Go)
 
 - list, first, last, nth, rest, find, append
 
-- print, println, format, sleep, rand
+- print, println, format, readlines, sleep, rand
 
 ## Examples
 - cmd/gisp : a REPL for gisp (can run single expressions, programs from file or expressions interactively)

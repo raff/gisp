@@ -1,9 +1,11 @@
 package gisp
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"math/rand"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
@@ -623,6 +625,40 @@ func init() {
 		},
 
 		//
+		// readlines [filename]
+		//
+		"readlines": func(env *Env, args []any) any {
+			fin := os.Stdin
+
+			if len(args) > 0 {
+				fname, ok := env.Get(args[0]).(String)
+				if !ok {
+					return invalidType(args[0])
+				}
+
+				f, err := os.Open(fname.value)
+				if err != nil {
+					return MakeError(err)
+				}
+
+				defer f.Close()
+				fin = f
+			}
+
+			var lines []any
+
+			scanner := bufio.NewScanner(fin)
+			for scanner.Scan() {
+				lines = append(lines, String{value: scanner.Text()})
+			}
+			if err := scanner.Err(); err != nil {
+				return MakeError(err)
+			}
+
+			return List{items: lines}
+		},
+
+		//
 		// sleep ms
 		//
 		"sleep": func(env *Env, args []any) any {
@@ -989,7 +1025,7 @@ func init() {
 				return ErrMissing
 			}
 
-			l, ok := args[0].(List)
+			l, ok := env.Get(args[0]).(List)
 			if !ok {
 				return invalidType(args[0])
 			}
@@ -1009,7 +1045,7 @@ func init() {
 				return ErrMissing
 			}
 
-			l, ok := args[0].(List)
+			l, ok := env.Get(args[0]).(List)
 			if !ok {
 				return invalidType(args[0])
 			}
@@ -1029,12 +1065,12 @@ func init() {
 				return ErrMissing
 			}
 
-			n, ok := args[0].(CanInt)
+			n, ok := env.Get(args[0]).(CanInt)
 			if !ok {
 				return invalidType(args[0])
 			}
 
-			l, ok := args[1].(List)
+			l, ok := env.Get(args[0]).(List)
 			if !ok {
 				return invalidType(args[1])
 			}
@@ -1056,7 +1092,7 @@ func init() {
 				return ErrMissing
 			}
 
-			l, ok := args[0].(List)
+			l, ok := env.Get(args[0]).(List)
 			if !ok {
 				return invalidType(args[0])
 			}
@@ -1367,6 +1403,11 @@ func MakeString(v string) String {
 // MakeList creates a List object from a list of objects
 func MakeList(items ...any) List {
 	return List{items: items}
+}
+
+// MakeList creates an Error object from a go error
+func MakeError(e error) Error {
+	return Error{value: e}
 }
 
 // Eval evaluates the current object
