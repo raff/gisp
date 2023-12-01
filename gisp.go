@@ -994,6 +994,18 @@ func init() {
 		},
 
 		//
+		// eval form
+		//
+		"eval": func(env *Env, args []any) any {
+			if len(args) == 0 {
+				return ErrMissing
+			}
+
+			e := env.Get(args[0])
+			return Eval(env, e)
+		},
+
+		//
 		// lambda (args) stmt...
 		//
 		"lambda": func(env *Env, args []any) any {

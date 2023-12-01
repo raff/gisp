@@ -21,6 +21,7 @@ My attempt to write a minimal Lisp interpreter (in Go)
 - while
 - begin
 - lambda
+- eval
 
 - list, first, last, nth, rest, find, append
 
