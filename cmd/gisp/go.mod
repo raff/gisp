@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/raff/gisp v1.0.0
-	github.com/raff/readliner v0.0.0-20231130054758-ac9216a4b203
+	github.com/raff/readliner v1.0.0
 )
 
 require (
@@ -14,3 +14,5 @@ require (
 )
 
 replace github.com/raff/gisp v1.0.0 => ../..
+
+replace github.com/raff/readliner v1.0.0 => ../../../readliner
