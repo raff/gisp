@@ -31,7 +31,6 @@ func main() {
 		defer f.Close()
 	} else if *interactive {
 		rl := readliner.New("> ", ".gisp_history")
-		rl.SetEol("\n\n") // not sure of why
 		rl.SetCompletions(gisp.Primitives(), false)
 		defer rl.Close()
 		p = gisp.NewParser(rl)
