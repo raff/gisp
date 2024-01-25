@@ -96,7 +96,7 @@
     (setq p 50)
     (setq f 300)
 
-    (while (< i 100)
+    (while (< i 120)
       (begin
          (setq justp (justpressed t 'escape 'q 'a 's "[" "]" "-" "="))
          (if (contains "q" justp)
