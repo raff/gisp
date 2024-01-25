@@ -12,12 +12,12 @@ import (
 	_ "image/png"
 
 	"github.com/GaryBrownEEngr/turtle"
-	"github.com/GaryBrownEEngr/turtle/models"
+	"github.com/GaryBrownEEngr/turtle/turtlemodel"
 	"github.com/raff/gisp"
 )
 
 type Color struct {
-	value color.RGBA
+	value color.Color
 }
 
 func (c Color) String() string { return fmt.Sprintf("Color%v", c.value) }
@@ -25,8 +25,8 @@ func (c Color) Value() any     { return c.value }
 
 type Turtle struct {
 	win    turtle.Window
-	turtle models.Turtle
-	input  chan *models.UserInput
+	turtle turtlemodel.Turtle
+	input  chan *turtlemodel.UserInput
 }
 
 func (c Turtle) String() string { return "Turtle{}" }
@@ -37,11 +37,11 @@ func (c Turtle) pressed(k string) bool {
 	return in.IsPressedByName(k)
 }
 
-func (c Turtle) justPressed() *models.UserInput {
+func (c Turtle) justPressed() *turtlemodel.UserInput {
 	return turtle.GetNewestJustPressedFromChan(c.input)
 }
 
-var namedcolors = map[string]color.RGBA{
+var namedcolors = map[string]color.Color{
 	"black": turtle.Black,
 	"white": turtle.White,
 	"red":   turtle.Red,
@@ -168,7 +168,7 @@ func callClear(env *gisp.Env, args []any) any {
 		return gisp.ErrInvalidType
 	}
 
-	bg := turtle.Black
+	var bg color.Color = turtle.Black
 
 	if n > 1 {
 		c, ok := args[1].(Color)
