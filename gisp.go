@@ -1013,13 +1013,13 @@ func init() {
 				return ErrMissing
 			}
 
-			locals, args := args[0], args[1:]
-			llocals, ok := locals.(List)
+			params, args := args[0], args[1:]
+			pparams, ok := params.(List)
 			if !ok {
-				return invalidType(locals)
+				return invalidType(params)
 			}
 
-			return Lambda{args: llocals.items, body: args}
+			return Lambda{args: pparams.items, body: args}
 		},
 
 		//
