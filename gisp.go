@@ -408,14 +408,14 @@ func NewParser(r io.Reader) *Parser {
 
 	p.s.Init(r)
 	p.s.Whitespace = 0
-	p.s.Mode = scanner.ScanIdents | scanner.ScanInts | scanner.ScanFloats | scanner.ScanStrings
+	p.s.Mode = scanner.ScanIdents | scanner.ScanInts | scanner.ScanFloats | scanner.ScanStrings | scanner.ScanRawStrings
 	return &p
 }
 
 // SepNext checks if the next character to parse is a separator between gisp objects
 func (p *Parser) SepNext() bool {
 	switch p.s.Peek() {
-	case ' ', '\r', '\n', '(', ')', scanner.EOF:
+	case ' ', '\t', '\r', '\n', '(', ')', scanner.EOF:
 		return true
 	}
 
@@ -477,6 +477,9 @@ func (p *Parser) parse(one bool) (l []any, err error) {
 			return
 
 		case ' ', '\t', '\n', '\r':
+                        if Verbose {
+                            fmt.Printf("separator: %d", tok)
+                        }
 			if one {
 				return
 			}
@@ -498,7 +501,7 @@ func (p *Parser) parse(one bool) (l []any, err error) {
 
 			appendtolist(ident(id))
 
-		case scanner.String:
+		case scanner.String, scanner.RawString:
 			st, _ = strconv.Unquote(st)
 			appendtolist(String{value: st})
 
@@ -622,6 +625,35 @@ func init() {
 			}
 
 			return fmt.Sprintf(sfmt.String(), args...)
+		},
+
+		//
+		// readfile [filename]
+		//
+		"readfile": func(env *Env, args []any) any {
+			fin := os.Stdin
+
+			if len(args) > 0 {
+				fname, ok := env.Get(args[0]).(String)
+				if !ok {
+					return invalidType(args[0])
+				}
+
+				f, err := os.Open(fname.value)
+				if err != nil {
+					return MakeError(err)
+				}
+
+				defer f.Close()
+				fin = f
+			}
+
+			content, err := io.ReadAll(fin)
+			if err != nil {
+				return MakeError(err)
+			}
+
+			return String{value: string(content)}
 		},
 
 		//
