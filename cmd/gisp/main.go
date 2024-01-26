@@ -17,6 +17,7 @@ func main() {
 	flag.Parse()
 
 	var p *gisp.Parser
+	var rl *readliner.ReadLiner
 
 	if *expr {
 		p = gisp.NewParser(strings.NewReader(strings.Join(flag.Args(), " ")))
@@ -30,7 +31,8 @@ func main() {
 		p = gisp.NewParser(f)
 		defer f.Close()
 	} else if *interactive {
-		rl := readliner.New("> ", ".gisp_history")
+		rl = readliner.New("> ", ".gisp_history")
+		rl.SetContPrompt(": ")
 		rl.SetCompletions(gisp.Primitives(), false)
 		defer rl.Close()
 		p = gisp.NewParser(rl)
@@ -42,6 +44,7 @@ func main() {
 
 	if *interactive {
 		for {
+			rl.Newline()
 			l, err := p.ParseOne()
 			if err != nil {
 				fmt.Println(err)
