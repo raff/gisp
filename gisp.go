@@ -11,6 +11,7 @@ import (
 	"strings"
 	"text/scanner"
 	"time"
+        "unicode"
 )
 
 var (
@@ -409,6 +410,9 @@ func NewParser(r io.Reader) *Parser {
 	p.s.Init(r)
 	p.s.Whitespace = 0
 	p.s.Mode = scanner.ScanIdents | scanner.ScanInts | scanner.ScanFloats | scanner.ScanStrings
+        p.s.IsIdentRune = func(ch rune, i int) bool {
+            return ch == '_' || ch == '$' || ch == ':' || unicode.IsLetter(ch) || unicode.IsDigit(ch) && i > 0
+        }
 	return &p
 }
 
