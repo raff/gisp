@@ -11,8 +11,8 @@ import (
 	_ "image/gif"
 	_ "image/png"
 
-	"github.com/GaryBrownEEngr/turtle"
-	"github.com/GaryBrownEEngr/turtle/turtlemodel"
+	"github.com/gary23b/turtle"
+	"github.com/gary23b/turtle/turtlemodel"
 	"github.com/raff/gisp"
 )
 
@@ -723,33 +723,33 @@ func main() {
 		p = gisp.NewParser(os.Stdin)
 	}
 
-	gisp.AddPrimitive("color", callColor)
-	gisp.AddPrimitive("turtle", callTurtle)
-	gisp.AddPrimitive("exit", callExit)
-	gisp.AddPrimitive("clear", callClear)
-	gisp.AddPrimitive("show", callShow)
-	gisp.AddPrimitive("scale", callScale)
-	gisp.AddPrimitive("pendown", callPenDown)
-	gisp.AddPrimitive("penup", callPenUp)
-	gisp.AddPrimitive("speed", callSpeed)
-	gisp.AddPrimitive("pencolor", callPenColor)
-	gisp.AddPrimitive("fill", callFill)
-	gisp.AddPrimitive("size", callSize)
-	gisp.AddPrimitive("dot", callDot)
-	gisp.AddPrimitive("angle", callAngle)
-	gisp.AddPrimitive("left", callLeft)
-	gisp.AddPrimitive("right", callRight)
-	gisp.AddPrimitive("panleft", callPanLeft)
-	gisp.AddPrimitive("panright", callPanRight)
-	gisp.AddPrimitive("backward", callBackward)
-	gisp.AddPrimitive("forward", callForward)
-	gisp.AddPrimitive("goto", callGoTo)
-	gisp.AddPrimitive("pos", callPos)
-	gisp.AddPrimitive("pointto", callPointTo)
-	gisp.AddPrimitive("circle", callCircle)
-	gisp.AddPrimitive("pressed", callPressed)
-	gisp.AddPrimitive("justpressed", callJustPressed)
-	gisp.AddPrimitive("mousepos", callMousePos)
+	gisp.AddBuiltin("color", callColor)
+	gisp.AddBuiltin("turtle", callTurtle)
+	gisp.AddBuiltin("exit", callExit)
+	gisp.AddBuiltin("clear", callClear)
+	gisp.AddBuiltin("show", callShow)
+	gisp.AddBuiltin("scale", callScale)
+	gisp.AddBuiltin("pendown", callPenDown)
+	gisp.AddBuiltin("penup", callPenUp)
+	gisp.AddBuiltin("speed", callSpeed)
+	gisp.AddBuiltin("pencolor", callPenColor)
+	gisp.AddBuiltin("fill", callFill)
+	gisp.AddBuiltin("size", callSize)
+	gisp.AddBuiltin("dot", callDot)
+	gisp.AddBuiltin("angle", callAngle)
+	gisp.AddBuiltin("left", callLeft)
+	gisp.AddBuiltin("right", callRight)
+	gisp.AddBuiltin("panleft", callPanLeft)
+	gisp.AddBuiltin("panright", callPanRight)
+	gisp.AddBuiltin("backward", callBackward)
+	gisp.AddBuiltin("forward", callForward)
+	gisp.AddBuiltin("goto", callGoTo)
+	gisp.AddBuiltin("pos", callPos)
+	gisp.AddBuiltin("pointto", callPointTo)
+	gisp.AddBuiltin("circle", callCircle)
+	gisp.AddBuiltin("pressed", callPressed)
+	gisp.AddBuiltin("justpressed", callJustPressed)
+	gisp.AddBuiltin("mousepos", callMousePos)
 
 	env := gisp.NewEnv(nil)
 

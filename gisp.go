@@ -11,7 +11,7 @@ import (
 	"strings"
 	"text/scanner"
 	"time"
-        "unicode"
+	"unicode"
 )
 
 var (
@@ -34,22 +34,22 @@ var (
 		true:  1,
 	}
 
-	primitives map[string]Call
+	builtins map[string]Call
 )
 
-// Call is the signature for primitive/builtin methods
+// Call is the signature for builtin methods
 type Call func(env *Env, args []any) any
 
-// AddPrimitive adds a new built-in/primitive method.
-// Note that it can override existing primitives
-func AddPrimitive(name string, value Call) {
-	primitives[name] = value
+// AddBuiltin adds a new built-in method.
+// Note that it can override existing builtin methods.
+func AddBuiltin(name string, value Call) {
+	builtins[name] = value
 }
 
-// Primitives returns a list of primivives (names)
+// Builtins returns a list of builtin method (names)
 // Note that this doesn't return the math and conditional operators.
-func Primitives() (l []string) {
-	for k, _ := range primitives {
+func Builtins() (l []string) {
+	for k, _ := range builtins {
 		l = append(l, k)
 	}
 
@@ -149,7 +149,7 @@ type Symbol struct {
 	value string
 }
 
-func (o Symbol) String() string { return fmt.Sprintf("%v", o.value) }
+func (o Symbol) String() string { return o.value }
 func (o Symbol) Value() any     { return o.value }
 
 // Quoted is for quoted symbols
@@ -410,9 +410,9 @@ func NewParser(r io.Reader) *Parser {
 	p.s.Init(r)
 	p.s.Whitespace = 0
 	p.s.Mode = scanner.ScanIdents | scanner.ScanInts | scanner.ScanFloats | scanner.ScanStrings | scanner.ScanRawStrings
-        p.s.IsIdentRune = func(ch rune, i int) bool {
-            return ch == '_' || ch == '$' || ch == ':' || unicode.IsLetter(ch) || unicode.IsDigit(ch) && i > 0
-        }
+	p.s.IsIdentRune = func(ch rune, i int) bool {
+		return ch == '_' || ch == '$' || ch == ':' || unicode.IsLetter(ch) || unicode.IsDigit(ch) && i > 0
+	}
 	return &p
 }
 
@@ -481,9 +481,9 @@ func (p *Parser) parse(one bool) (l []any, err error) {
 			return
 
 		case ' ', '\t', '\n', '\r':
-                        if Verbose {
-                            fmt.Printf("separator: %d", tok)
-                        }
+			if Verbose {
+				fmt.Printf("separator: %d", tok)
+			}
 			if one {
 				return
 			}
@@ -582,7 +582,7 @@ func invalidType(v any) error {
 func init() {
 	// primitive functions
 
-	primitives = map[string]Call{
+	builtins = map[string]Call{
 		//
 		// print args
 		//
@@ -1489,7 +1489,7 @@ func Eval(env *Env, v any) any {
 		}
 		switch i := t.items[0].(type) {
 		case Symbol:
-			if f, ok := primitives[i.value]; ok {
+			if f, ok := builtins[i.value]; ok {
 				return f(env, t.items[1:])
 			}
 			v := env.Get(i)
