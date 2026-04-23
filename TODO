@@ -1,0 +1,55 @@
+Performance improvements (identified via benchmarks in gisp_test.go)
+======================================================================
+
+The main bottleneck is function call overhead: every CallLambda invocation
+allocates a new map[string]any via NewEnv (~128B + pointer overhead), giving
+~6-7 heap allocations per call regardless of arity. fib(20) produces 54K
+allocations as a result.
+
+A. Slice-based frame for lambda environments  [high impact]
+-----------------------------------------------------------
+Replace the map[string]any in Env with a []any indexed by parameter
+position for lambda call frames. Parameters are known and fixed at lambda
+creation time, so a linear-scan slice is both faster and cheaper than a
+hash map for the typical case of 1–4 params.
+
+  type Frame struct {
+      names []string  // shared from Lambda.args — no copy
+      vals  []any
+      next  *Env
+  }
+
+Expected: ~50% reduction in allocs/op for function-call-heavy programs.
+
+B. Op/Cond as integer constants  [medium impact]
+-------------------------------------------------
+callop and callcond switch on strings ("+" , "-", "<=", ...).
+Change Op.value and Cond.value from string to int8 (iota enum) so every
+arithmetic/comparison dispatch is an integer switch instead of a string
+comparison.
+
+C. Intern common Integer values  [medium impact]
+-------------------------------------------------
+Values like 0, 1, -1 are created fresh on the heap on every arithmetic
+result. Pre-allocate a table of boxed Integer singletons for the range
+[-1, 255] (similar to Java's Integer.valueOf cache). Avoids one heap
+alloc per arithmetic expression that yields a small constant result.
+
+D. Symbol interning at parse time  [low-medium impact]
+-------------------------------------------------------
+Store a single canonical string per symbol name in a global table and use
+pointer equality in lookupName instead of string comparison. Reduces hash
+overhead in map lookups and enables a future slice-based env to use O(1)
+indexed lookup keyed by symbol ID.
+
+E. Tail-call optimization  [correctness / stack depth]
+-------------------------------------------------------
+There is no TCO; deep recursion uses Go stack frames linearly and will
+overflow on large inputs. A trampoline or explicit stack in Eval would
+allow tail-recursive programs (and iterative loops written as recursion)
+to run without stack overflow.
+
+F. String concatenation in the parser  [minor]
+----------------------------------------------
+The ident-scanning loop in parse() uses += on a string inside a loop,
+which allocates on each iteration. Use a strings.Builder instead.

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+        "math"
 	"math/rand"
 	"os"
 	"slices"
@@ -738,6 +739,17 @@ func init() {
 			return Nil
 		},
 
+		"sqrt": func(env *Env, args []any) any {
+                    if len(args) >= 1 {
+                        v := env.Get(args[0])
+                        if v, ok := v.(CanFloat); ok {
+                            return math.Sqrt(v.Float())
+                        }
+                    }
+
+                    return Nil
+                },
+
 		//
 		// find needle haysstack
 		//
@@ -1159,12 +1171,10 @@ func CallLambda(l Lambda, env *Env, args []any) (ret any) {
 	lenv := NewEnv(env)
 
 	for i, n := range l.args {
-		var v any = nil
-
+		var v any
 		if i < len(args) {
-			v = lenv.PutLocal(n, env.Get(args[i]))
+			v = env.Get(args[i])
 		}
-
 		lenv.PutLocal(n, v)
 	}
 
@@ -1344,45 +1354,46 @@ func (e *Env) Put(o, value any) any {
 	return value
 }
 
+// lookupName walks the env chain for name without the type-dispatch overhead of Get.
+func (e *Env) lookupName(name string) any {
+	if v, ok := e.vars[name]; ok {
+		return v
+	}
+	if e.next != nil {
+		return e.next.lookupName(name)
+	}
+	return Nil
+}
+
 // Get tries to resolve to an existing variable or evaluate the input.
 func (e *Env) Get(o any) any {
 	name, err := getname(o)
 	if err != nil {
 		return Eval(e, o)
 	}
-
-	if v, ok := e.vars[name]; ok {
-		return v
-	}
-
-	if e.next != nil {
-		return e.next.Get(o)
-	}
-
-	return Nil
+	return e.lookupName(name)
 }
 
-// Get resolves all input as variables or evaluates them.
-func (e *Env) GetList(l []any) (el []any) {
-	for _, v := range l {
-		el = append(el, e.Get(v))
+// GetList resolves all inputs as variables or evaluates them.
+func (e *Env) GetList(l []any) []any {
+	el := make([]any, len(l))
+	for i, v := range l {
+		el[i] = e.Get(v)
 	}
-
-	return
+	return el
 }
 
 // GetValues returns the primitive value for the input variables or evaluated objects.
-func (e *Env) GetValues(l []any) (el []any) {
-	for _, v := range l {
+func (e *Env) GetValues(l []any) []any {
+	el := make([]any, len(l))
+	for i, v := range l {
 		v = e.Get(v)
 		if o, ok := v.(Object); ok {
 			v = o.Value()
 		}
-
-		el = append(el, v)
+		el[i] = v
 	}
-
-	return
+	return el
 }
 
 // AsBool converts the input object to a boolean, if possible or return the default value.
