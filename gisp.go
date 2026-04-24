@@ -161,21 +161,42 @@ type Quoted struct {
 func (o Quoted) String() string { return fmt.Sprintf("'%v", o.value) }
 func (o Quoted) Value() any     { return o.value }
 
+// B: Op/Cond use int8 constants instead of strings for O(1) integer dispatch.
+const (
+	opAdd int8 = iota
+	opSub
+	opMul
+	opDiv
+	opMod
+)
+
+var opStrings = [...]string{"+", "-", "*", "/", "%"}
+
 // Op is for math operators ( +, -, *, / )
 type Op struct {
-	value string
+	value int8
 }
 
-func (o Op) String() string { return fmt.Sprintf("%q", o.value) }
-func (o Op) Value() any     { return o.value }
+func (o Op) String() string { return fmt.Sprintf("%q", opStrings[o.value]) }
+func (o Op) Value() any     { return opStrings[o.value] }
+
+const (
+	condEq int8 = iota
+	condLt
+	condLeq
+	condGt
+	condGeq
+)
+
+var condStrings = [...]string{"=", "<", "<=", ">", ">="}
 
 // Cond is for conditional operators ( =, <, <=, >, >= )
 type Cond struct {
-	value string
+	value int8
 }
 
-func (o Cond) String() string { return fmt.Sprintf("%q", o.value) }
-func (o Cond) Value() any     { return o.value }
+func (o Cond) String() string { return fmt.Sprintf("%q", condStrings[o.value]) }
+func (o Cond) Value() any     { return condStrings[o.value] }
 
 // Integer is the integer primitive type (int64)
 type Integer struct {
@@ -226,6 +247,22 @@ func (o Integer) Geq(v any) bool {
 	}
 
 	return false
+}
+
+// C: Singleton cache for Integer values in [-1, 255] avoids heap allocation
+// for small arithmetic results that would otherwise box a fresh struct each time.
+const (
+	intCacheMin = -1
+	intCacheMax = 255
+)
+
+var intCache [intCacheMax - intCacheMin + 1]Integer
+
+func cachedInt(v int64) Integer {
+	if v >= intCacheMin && v <= intCacheMax {
+		return intCache[v-intCacheMin]
+	}
+	return Integer{value: v}
 }
 
 // Float is the floating point primitive type (float64)
@@ -358,10 +395,13 @@ func (o List) Bool() bool {
 	return len(o.items) > 0
 }
 
-// Lambda is the anonymous function type
+// Lambda is the anonymous function type.
+// A: names holds pre-extracted parameter name strings shared across all calls
+// to this lambda, enabling slice-based frame lookup without per-call allocation.
 type Lambda struct {
-	args []any
-	body []any
+	args  []any    // parameter names as Symbol objects (for String/Arg methods)
+	names []string // pre-extracted strings from args; shared, never copied
+	body  []any
 }
 
 func (o Lambda) String() string { return fmt.Sprintf("(lambda %v %v)", o.args, o.body) }
@@ -375,6 +415,19 @@ func (o Lambda) Arg(i int) any {
 	return o.args[i]
 }
 
+// D: symbolTable interns symbol name strings so all parsed occurrences of the
+// same name share a single string instance. This makes frame lookup's linear
+// scan use pointer-equal strings, hitting Go's fast path for string comparison.
+var symbolTable = make(map[string]string)
+
+func internSymbol(s string) string {
+	if interned, ok := symbolTable[s]; ok {
+		return interned
+	}
+	symbolTable[s] = s
+	return s
+}
+
 func ident(v string) Object {
 	switch v {
 	case "true":
@@ -384,7 +437,7 @@ func ident(v string) Object {
 		return Nil
 	}
 
-	return Symbol{value: v}
+	return Symbol{value: internSymbol(v)}
 }
 
 func quote(v any) any {
@@ -490,21 +543,25 @@ func (p *Parser) parse(one bool) (l []any, err error) {
 			}
 			continue
 
+		// F: Fast path for single-token identifiers avoids any string allocation.
+		// Multi-token identifiers (rare) use strings.Builder instead of += to
+		// avoid O(n) allocations in the concatenation loop.
 		case scanner.Ident:
-			var id string
-
-			for {
-				id += st
-
-				if p.SepNext() {
-					break
+			if p.SepNext() {
+				appendtolist(ident(st))
+			} else {
+				var sb strings.Builder
+				sb.WriteString(st)
+				for {
+					tok = p.s.Scan()
+					st = p.s.TokenText()
+					sb.WriteString(st)
+					if p.SepNext() {
+						break
+					}
 				}
-
-				tok = p.s.Scan()
-				st = p.s.TokenText()
+				appendtolist(ident(sb.String()))
 			}
-
-			appendtolist(ident(id))
 
 		case scanner.String, scanner.RawString:
 			st, _ = strconv.Unquote(st)
@@ -516,7 +573,7 @@ func (p *Parser) parse(one bool) (l []any, err error) {
 				i = -i
 				neg = false
 			}
-			appendtolist(Integer{value: i})
+			appendtolist(cachedInt(i))
 
 		case scanner.Float:
 			f, _ := strconv.ParseFloat(st, 64)
@@ -532,6 +589,7 @@ func (p *Parser) parse(one bool) (l []any, err error) {
 			}
 			quoted = true
 
+		// B: Operators stored as int8 constants — parser converts strings once.
 		case '+', '-', '/', '*', '%':
 			if tok == '+' || tok == '-' {
 				if n := p.s.Peek(); n == '.' || (n >= '0' && n <= '9') { // next token is a number
@@ -539,27 +597,39 @@ func (p *Parser) parse(one bool) (l []any, err error) {
 					continue
 				}
 			}
-
-			appendtolist(Op{value: st})
+			var opVal int8
+			switch tok {
+			case '+':
+				opVal = opAdd
+			case '-':
+				opVal = opSub
+			case '*':
+				opVal = opMul
+			case '/':
+				opVal = opDiv
+			case '%':
+				opVal = opMod
+			}
+			appendtolist(Op{value: opVal})
 
 		case '<':
 			if p.s.Peek() == '=' {
 				p.s.Next()
-				appendtolist(Cond{value: "<="})
+				appendtolist(Cond{value: condLeq})
 			} else {
-				appendtolist(Cond{value: "<"})
+				appendtolist(Cond{value: condLt})
 			}
 
 		case '>':
 			if p.s.Peek() == '=' {
 				p.s.Next()
-				appendtolist(Cond{value: ">="})
+				appendtolist(Cond{value: condGeq})
 			} else {
-				appendtolist(Cond{value: ">"})
+				appendtolist(Cond{value: condGt})
 			}
 
 		case '=':
-			appendtolist(Cond{value: "="})
+			appendtolist(Cond{value: condEq})
 
 		default:
 			if Verbose {
@@ -581,8 +651,12 @@ func invalidType(v any) error {
 }
 
 func init() {
-	// primitive functions
+	// C: pre-populate the integer singleton cache
+	for i := range intCache {
+		intCache[i] = Integer{value: int64(i) + intCacheMin}
+	}
 
+	// primitive functions
 	builtins = map[string]Call{
 		//
 		// print args
@@ -1055,6 +1129,7 @@ func init() {
 
 		//
 		// lambda (args) stmt...
+		// A: pre-extract parameter names into []string shared across all calls.
 		//
 		"lambda": func(env *Env, args []any) any {
 			if len(args) == 0 {
@@ -1067,7 +1142,14 @@ func init() {
 				return invalidType(params)
 			}
 
-			return Lambda{args: pparams.items, body: args}
+			names := make([]string, len(pparams.items))
+			for i, p := range pparams.items {
+				if s, ok := p.(Symbol); ok {
+					names[i] = s.value
+				}
+			}
+
+			return Lambda{args: pparams.items, names: names, body: args}
 		},
 
 		//
@@ -1166,16 +1248,15 @@ func init() {
 	}
 }
 
-// CallLambda call a lambda function, passing the local enviroment and some input parameters
+// CallLambda calls a lambda function, passing the local environment and input parameters.
+// A: uses a slice-based frame env instead of a map to avoid ~128B map allocation per call.
 func CallLambda(l Lambda, env *Env, args []any) (ret any) {
-	lenv := NewEnv(env)
+	lenv := &Env{names: l.names, vals: make([]any, len(l.names)), next: env}
 
-	for i, n := range l.args {
-		var v any
+	for i := range l.names {
 		if i < len(args) {
-			v = env.Get(args[i])
+			lenv.vals[i] = env.Get(args[i])
 		}
-		lenv.PutLocal(n, v)
 	}
 
 	for _, v := range l.body {
@@ -1188,10 +1269,11 @@ func CallLambda(l Lambda, env *Env, args []any) (ret any) {
 	return
 }
 
+// B: callop dispatches on int8 constant instead of string comparison.
 func callop(op Op, env *Env, args []any) any {
 	if len(args) == 0 {
-		if op.value == "+" {
-			return 0
+		if op.value == opAdd {
+			return cachedInt(0)
 		}
 
 		return ErrMissing
@@ -1212,20 +1294,20 @@ func callop(op Op, env *Env, args []any) any {
 			}
 
 			switch op.value {
-			case "+":
+			case opAdd:
 				v += ii.Int()
-			case "-":
+			case opSub:
 				v -= ii.Int()
-			case "*":
+			case opMul:
 				v *= ii.Int()
-			case "/":
+			case opDiv:
 				v /= ii.Int()
-			case "%":
+			case opMod:
 				v %= ii.Int()
 			}
 		}
 
-		return Integer{value: v}
+		return cachedInt(v)
 
 	case Float:
 		v := t.value
@@ -1239,15 +1321,15 @@ func callop(op Op, env *Env, args []any) any {
 			}
 
 			switch op.value {
-			case "+":
+			case opAdd:
 				v += ii.Float()
-			case "-":
+			case opSub:
 				v -= ii.Float()
-			case "*":
+			case opMul:
 				v *= ii.Float()
-			case "/":
+			case opDiv:
 				v /= ii.Float()
-			case "%":
+			case opMod:
 				v = float64(int64(v) % int64(ii.Float()))
 			}
 		}
@@ -1258,6 +1340,7 @@ func callop(op Op, env *Env, args []any) any {
 	return invalidType(first)
 }
 
+// B: callcond dispatches on int8 constant instead of string comparison.
 func callcond(op Cond, env *Env, args []any) any {
 	if len(args) == 0 {
 		return True
@@ -1273,19 +1356,15 @@ func callcond(op Cond, env *Env, args []any) any {
 		c2 := env.Get(a)
 
 		switch op.value {
-		case "=":
+		case condEq:
 			cond = c1.Eq(c2)
-
-		case "<":
+		case condLt:
 			cond = c1.Lt(c2)
-
-		case "<=":
+		case condLeq:
 			cond = c1.Leq(c2)
-
-		case ">":
+		case condGt:
 			cond = c1.Gt(c2)
-
-		case ">=":
+		case condGeq:
 			cond = c1.Geq(c2)
 		}
 
@@ -1302,14 +1381,18 @@ func callcond(op Cond, env *Env, args []any) any {
 	return True
 }
 
-// Env stores the current environments (collection of variables)
+// Env stores the current environment (collection of variables).
+// A: when names != nil this is a lambda call frame using slice-based lookup;
+// vars is only allocated lazily if the body adds non-parameter locals.
 type Env struct {
-	vars map[string]any
-	next *Env
+	vars  map[string]any
+	names []string // non-nil => lambda frame; shared from Lambda.names
+	vals  []any    // parallel to names
+	next  *Env
 }
 
-// NewEnv creates a new enviroment.
-// The root environment should have prev=nil, local environment will link to the previous (parent) one.
+// NewEnv creates a new map-based environment.
+// The root environment should have prev=nil; local environments link to their parent.
 func NewEnv(prev *Env) *Env {
 	return &Env{vars: map[string]any{}, next: prev}
 }
@@ -1326,23 +1409,64 @@ func getname(o any) (string, error) {
 	return "", ErrInvalidType
 }
 
-// PutLocal creates or update a variable in the local environment
+// PutLocal creates or updates a variable in the local environment.
 func (e *Env) PutLocal(o, value any) any {
 	name, err := getname(o)
 	if err != nil {
 		return err
 	}
 
+	if e.names != nil {
+		for i, n := range e.names {
+			if n == name {
+				e.vals[i] = value
+				return value
+			}
+		}
+		// Not a parameter slot; lazily allocate vars for extra locals.
+		if e.vars == nil {
+			e.vars = map[string]any{}
+		}
+		e.vars[name] = value
+		return value
+	}
+
 	e.vars[name] = value
 	return value
 }
 
-// Put update a variable with the same name, starting from the local environment.
-// If the variable doesn't already exist, it will be created in the global environment.
+// Put updates the variable with the given name, searching from the local environment upward.
+// If the variable doesn't already exist anywhere, it is created in the global (root) environment.
 func (e *Env) Put(o, value any) any {
 	name, err := getname(o)
 	if err != nil {
 		return err
+	}
+
+	if e.names != nil {
+		// Check lambda parameter slots first.
+		for i, n := range e.names {
+			if n == name {
+				e.vals[i] = value
+				return value
+			}
+		}
+		// Check any lazily-added extra vars.
+		if e.vars != nil {
+			if _, ok := e.vars[name]; ok {
+				e.vars[name] = value
+				return value
+			}
+		}
+		if e.next != nil {
+			return e.next.Put(o, value)
+		}
+		// Root frame (unusual): create in vars.
+		if e.vars == nil {
+			e.vars = map[string]any{}
+		}
+		e.vars[name] = value
+		return value
 	}
 
 	if _, ok := e.vars[name]; ok || e.next == nil {
@@ -1354,10 +1478,25 @@ func (e *Env) Put(o, value any) any {
 	return value
 }
 
-// lookupName walks the env chain for name without the type-dispatch overhead of Get.
+// lookupName walks the env chain for name.
+// A+D: frame envs use a linear scan over a []string; interned names make the
+// comparison O(1) via pointer equality before byte comparison.
 func (e *Env) lookupName(name string) any {
-	if v, ok := e.vars[name]; ok {
-		return v
+	if e.names != nil {
+		for i, n := range e.names {
+			if n == name {
+				return e.vals[i]
+			}
+		}
+		if e.vars != nil {
+			if v, ok := e.vars[name]; ok {
+				return v
+			}
+		}
+	} else {
+		if v, ok := e.vars[name]; ok {
+			return v
+		}
 	}
 	if e.next != nil {
 		return e.next.lookupName(name)
@@ -1444,9 +1583,9 @@ func MakeBool(v bool) Boolean {
 	return Boolean{value: v}
 }
 
-// MakeInt creates an Integer object from an int
+// MakeInt creates an Integer object from an int; uses the singleton cache for small values.
 func MakeInt[T int8 | int | int16 | int64](v T) Integer {
-	return Integer{value: int64(v)}
+	return cachedInt(int64(v))
 }
 
 // MakeFloat creates a Float object from a float64
@@ -1469,54 +1608,81 @@ func MakeError(e error) Error {
 	return Error{value: e}
 }
 
-// Eval evaluates the current object
+// Eval evaluates the current object.
+// E: the function is a loop; lambda tail calls re-enter the top of the loop
+// instead of adding a Go stack frame, giving O(1) stack depth for tail-recursive
+// programs.
 func Eval(env *Env, v any) any {
-	if Verbose {
-		fmt.Println("eval", v)
-	}
-
-	switch t := v.(type) {
-	case String:
-		return t
-
-	case Integer:
-		return t
-
-	case Float:
-		return t
-
-	case Boolean:
-		return t
-
-	case Quoted:
-		return t.value
-
-	case Symbol:
-		return env.Get(t)
-
-	case List:
-		if len(t.items) == 0 {
-			return Nil
+	for {
+		if Verbose {
+			fmt.Println("eval", v)
 		}
-		switch i := t.items[0].(type) {
+
+		switch t := v.(type) {
+		case String:
+			return t
+
+		case Integer:
+			return t
+
+		case Float:
+			return t
+
+		case Boolean:
+			return t
+
+		case Quoted:
+			return t.value
+
 		case Symbol:
-			if f, ok := builtins[i.value]; ok {
-				return f(env, t.items[1:])
+			return env.Get(t)
+
+		case List:
+			if len(t.items) == 0 {
+				return Nil
 			}
-			v := env.Get(i)
-			if l, ok := v.(Lambda); ok {
-				return CallLambda(l, env, t.items[1:])
+			switch i := t.items[0].(type) {
+			case Symbol:
+				if f, ok := builtins[i.value]; ok {
+					return f(env, t.items[1:])
+				}
+				lv := env.Get(i)
+				if l, ok := lv.(Lambda); ok {
+					// E: TCO — set up the frame and loop instead of calling
+					// CallLambda (which would add a Go stack frame).
+					callArgs := t.items[1:]
+					lenv := &Env{names: l.names, vals: make([]any, len(l.names)), next: env}
+					for idx := range l.names {
+						if idx < len(callArgs) {
+							lenv.vals[idx] = env.Get(callArgs[idx])
+						}
+					}
+					if len(l.body) == 0 {
+						return Nil
+					}
+					// Evaluate all non-tail body expressions normally.
+					for _, bv := range l.body[:len(l.body)-1] {
+						if Verbose {
+							fmt.Println("  ", bv)
+						}
+						Eval(lenv, bv)
+					}
+					// Tail-call: set up next loop iteration for the last expression.
+					env = lenv
+					v = l.body[len(l.body)-1]
+					continue
+				}
+
+				return lv
+
+			case Op:
+				return callop(i, env, t.items[1:])
+
+			case Cond:
+				return callcond(i, env, t.items[1:])
 			}
-
-			return v
-
-		case Op:
-			return callop(i, env, t.items[1:])
-
-		case Cond:
-			return callcond(i, env, t.items[1:])
 		}
-	}
 
-	return v
+		return v
+	}
 }
