@@ -1128,6 +1128,24 @@ func init() {
 		},
 
 		//
+		// go form...
+		// evaluates forms sequentially in a new goroutine
+		//
+		"go": func(env *Env, args []any) any {
+			if len(args) == 0 {
+				return ErrMissing
+			}
+
+			go func() {
+				for _, v := range args {
+					Eval(env, v)
+				}
+			}()
+
+			return Nil
+		},
+
+		//
 		// lambda (args) stmt...
 		// A: pre-extract parameter names into []string shared across all calls.
 		//

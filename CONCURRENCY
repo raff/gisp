@@ -1,0 +1,118 @@
+Concurrency design for gisp
+============================
+
+This document captures design decisions and open questions for the concurrency
+primitives in gisp. Implement nothing here until the decisions are settled.
+
+
+1. Environment model for `go`
+------------------------------
+Currently `go` shares the caller's *Env chain with the goroutine. Two options:
+
+  A. Shared (current)
+     The goroutine reads and writes the same environment as the caller.
+     - Natural for patterns where the goroutine mutates a shared variable.
+     - Reads are generally safe (env is mostly written at definition time).
+     - Concurrent setq on the same symbol is a data race; no locking today.
+     - Matches Go's own goroutine model (shared heap, explicit sync).
+
+  B. Isolated (copy-on-spawn)
+     A shallow copy of the env frame is made at goroutine spawn time.
+     - The goroutine sees a snapshot of the env at the moment of (go ...).
+     - Mutations inside the goroutine are invisible to the caller and
+       vice-versa, eliminating races without any locking.
+     - Already achievable today by wrapping the body in (let ...):
+         (go (let (x y z) (do-work x y z)))
+     - A copy-on-spawn model would bake this in automatically.
+
+  Open question: keep shared (simpler, more powerful, racy) or isolate
+  (safer, slightly surprising for users coming from a Lisp background)?
+
+  Note: if channels are added (see §3), they become the canonical way to
+  pass values between goroutines, making full isolation easier to justify.
+
+
+2. Waiting for completion
+--------------------------
+Several options, roughly in order of increasing complexity:
+
+  A. Channels as the only sync primitive (Unix philosophy)
+     Don't add a special wait mechanism. Instead, the goroutine signals
+     completion by sending on a channel the caller created:
+
+         (setq done (chan))
+         (go (do-work) (send done 1))
+         (recv done)   ; blocks until goroutine finishes
+
+     Simple, composable, no new concepts beyond channels.
+
+  B. `go` returns a future / handle
+     (setq f (go (compute)))
+     (wait f)            ; blocks until done, returns the last value
+
+     Convenient but requires a new type (Future or Handle). The return
+     value threading is slightly tricky with the current Eval model.
+
+  C. WaitGroup as a first-class type
+     (setq wg (waitgroup))
+     (wg-add wg 1)
+     (go (do-work) (wg-done wg))
+     (wg-wait wg)
+
+     Mirrors Go's sync.WaitGroup directly. Verbose but familiar to Go
+     programmers. Can be built on top of option A internally.
+
+  Recommendation: start with A (channels only), add B later if the
+  boilerplate proves painful in practice.
+
+
+3. Channels
+------------
+Proposed surface syntax, modeled on Go but Lisp-friendly:
+
+  ; creation
+  (chan)          ; unbuffered channel  →  chan[any]
+  (chan n)        ; buffered channel of capacity n
+
+  ; send / receive
+  (send ch val)   ; send val to ch  (blocks if full / no receiver)
+  (recv ch)       ; receive from ch (blocks until a value is available)
+                  ; returns the value; on a closed channel returns nil
+
+  ; close
+  (close ch)      ; close the channel
+
+  ; select — wait on multiple channel operations (stretch goal)
+  (select
+    ((recv ch1) (fn val ...))
+    ((send ch2 x) (...))
+    (default (...)))   ; optional non-blocking default arm
+
+  Implementation notes:
+  - Channel type wraps a Go chan any.
+  - (recv ch) on a closed, drained channel should return (nil false)
+    or just nil — decide based on how multi-value returns are handled.
+  - select maps directly to Go's select statement; may require a new
+    List variant or special form rather than a builtin.
+
+
+4. Ordering / phasing
+----------------------
+Suggested implementation order:
+
+  1. Settle the environment model decision (§1).
+  2. Add channels: (chan), (send), (recv), (close).
+  3. Validate that channels alone are sufficient as a wait primitive.
+  4. Add (select) if needed.
+  5. Revisit future/handle (§2B) based on real usage.
+
+
+5. Race safety
+---------------
+Even with isolated envs, the gisp interpreter itself is not thread-safe
+today (e.g., the global `builtins` map is read-only after init — fine;
+but the global symbol table is written at parse time — needs a sync.Mutex
+or a RWMutex if goroutines ever parse new code).
+
+Action item: audit global mutable state before shipping concurrent programs
+that parse code at runtime.
